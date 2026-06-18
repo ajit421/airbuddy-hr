@@ -1,4 +1,4 @@
-# AirBuddy HR Document Platform — Build TODO
+﻿# AirBuddy HR Document Platform — Build TODO
 
 > **AI IDE Instructions:** Work through this file top to bottom, one task at a time.
 > Each task has a clear goal, file path, and tech context.
@@ -14,7 +14,7 @@ Language      : TypeScript (strict: false initially)
 Styling       : TailwindCSS + shadcn/ui
 Auth          : Firebase Auth (Google OAuth only)
 Database      : Firebase Firestore
-Storage       : Firebase Storage (private bucket, signed URLs)
+Storage       : Cloudinary (free tier — images, PDFs, signatures)
 AI + OCR      : Gemini 2.5 Flash API (server-side only)
 PDF Generate  : @react-pdf/renderer
 PDF Signature : pdf-lib
@@ -30,14 +30,14 @@ Deployment    : Vercel
 
 ### 1.1 — Initialize Next.js project
 
-- [ ] Run: `npx create-next-app@latest airbuddy-hr --typescript --tailwind --eslint --no-app --no-src-dir --import-alias "@/*"`
+- [x] Run: `npx create-next-app@latest airbuddy-hr --typescript --tailwind --eslint --no-app --no-src-dir --import-alias "@/*"`
   > ⚠️ `--no-src-dir` places source at root (`pages/`, `components/`). The system design showed `src/` paths, but this TODO consistently uses flat paths — both approaches work with Next.js.
-- [ ] Verify Pages Router is used (`pages/` directory exists, NOT `app/`)
-- [ ] Open the project folder in your editor/IDE (all subsequent commands assume you're in the project root)
+- [x] Verify Pages Router is used (`pages/` directory exists, NOT `app/`)
+- [x] Open the project folder in your editor/IDE (all subsequent commands assume you're in the project root)
 
 ### 1.2 — Install all dependencies
 
-- [ ] Install production deps:
+- [x] Install production deps:
   ```
   npm install firebase firebase-admin @google/generative-ai
   npm install @react-pdf/renderer pdf-lib docx
@@ -45,13 +45,14 @@ Deployment    : Vercel
   npm install react-hook-form zod @hookform/resolvers
   npm install date-fns
   npm install sharp marked diff
+  npm install cloudinary
   ```
-- [ ] Install shadcn/ui:
+- [x] Install shadcn/ui:
   ```
   npx shadcn-ui@latest init
   ```
   Choose: TypeScript=yes, style=default, base color=slate, CSS variables=yes
-- [ ] Add shadcn components:
+- [x] Add shadcn components:
   ```
   npx shadcn-ui@latest add button input label select badge table dialog
   npx shadcn-ui@latest add dropdown-menu toast card separator tabs
@@ -60,7 +61,7 @@ Deployment    : Vercel
 
 ### 1.3 — Create folder structure
 
-- [ ] Create all directories (Windows PowerShell):
+- [x] Create all directories (Windows PowerShell):
   ```powershell
   $dirs = @(
     "pages/api/auth", "pages/api/employees", "pages/api/ocr",
@@ -69,7 +70,7 @@ Deployment    : Vercel
     "pages/employees", "pages/templates", "pages/documents",
     "components/layout", "components/employees", "components/templates",
     "components/documents", "components/export", "components/audit",
-    "lib/firebase", "lib/gemini", "lib/export",
+    "lib/firebase", "lib/gemini", "lib/export", "lib/cloudinary",
     "lib/templates", "lib/employees", "lib/audit",
     "hooks", "types", "constants"
   )
@@ -78,13 +79,12 @@ Deployment    : Vercel
 
 ### 1.4 — Environment variables
 
-- [ ] Create `.env.local` in project root with these keys (fill in real values from Firebase + Gemini console):
+- [x] Create `.env.local` in project root with these keys (fill in real values from Firebase + Gemini console):
   ```env
   # Firebase Client (NEXT_PUBLIC_ prefix — safe to expose to browser)
   NEXT_PUBLIC_FIREBASE_API_KEY=
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
   NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
   NEXT_PUBLIC_FIREBASE_APP_ID=
 
@@ -96,24 +96,29 @@ Deployment    : Vercel
   # Gemini API (server-side only)
   GEMINI_API_KEY=
 
+  # Cloudinary (replaces Firebase Storage — free 25 GB, no credit card)
+  CLOUDINARY_CLOUD_NAME=
+  CLOUDINARY_API_KEY=
+  CLOUDINARY_API_SECRET=
+
   # App config
   NEXT_PUBLIC_APP_URL=http://localhost:3000
   NEXT_PUBLIC_ALLOWED_DOMAIN=airbuddy.in
   ```
-- [ ] Create `.env.example` (same keys, empty values — not to be committed to git)
-- [ ] Add `.env.local` to `.gitignore`
+- [x] Create `.env.example` (same keys, empty values — not to be committed to git)
+- [x] Add `.env.local` to `.gitignore`
 
 ### 1.5 — TypeScript config
 
-- [ ] In `tsconfig.json` set `"strict": false` for now
-- [ ] Verify `@/*` path alias is configured
+- [x] In `tsconfig.json` set `"strict": false` for now
+- [x] Verify `@/*` path alias is configured
 
 ### 1.6 — Initial Vercel deploy
 
-- [ ] Push to GitHub repo: `airbuddy-hr`
-- [ ] Connect repo to Vercel, deploy
-- [ ] Verify live URL loads Next.js default page
-- [ ] Add all env vars from `.env.local` to Vercel dashboard → Settings → Environment Variables
+- [x] Push to GitHub repo: `airbuddy-hr`
+- [x] Connect repo to Vercel, deploy
+- [x] Verify live URL loads Next.js default page
+- [x] Add all env vars from `.env.local` to Vercel dashboard → Settings → Environment Variables
 
 ---
 
@@ -121,21 +126,19 @@ Deployment    : Vercel
 
 ### 2.1 — Firebase project
 
-- [ ] Go to console.firebase.google.com → Create project "airbuddy-hr"
-- [ ] Enable Firestore Database (production mode)
-- [ ] Enable Firebase Storage (production mode)
-- [ ] Enable Authentication → Sign-in method → Google → Enable
-- [ ] In Google OAuth, set Authorized domain: `your-app.vercel.app`
-- [ ] Generate Admin SDK service account: Project Settings → Service Accounts → Generate new private key → save as JSON
+- [x] Go to console.firebase.google.com → Create project "airbuddy-hr"
+- [x] Enable Firestore Database (production mode)
+- [x] Enable Authentication → Sign-in method → Google → Enable
+- [x] In Google OAuth, set Authorized domain: `https://airbuddy-hr.vercel.app`
+- [x] Generate Admin SDK service account: Project Settings → Service Accounts → Generate new private key → save as JSON
 
 ### 2.2 — Firebase client config (`lib/firebase/client.ts`)
 
-- [ ] Create `lib/firebase/client.ts`:
+- [x] Create `lib/firebase/client.ts`:
   ```typescript
   import { initializeApp, getApps, getApp } from 'firebase/app'
   import { getAuth } from 'firebase/auth'
   import { getFirestore } from 'firebase/firestore'
-  import { getStorage } from 'firebase/storage'
 
   const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -149,13 +152,12 @@ Deployment    : Vercel
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
   export const auth = getAuth(app)
   export const db = getFirestore(app)
-  export const storage = getStorage(app)
   export default app
   ```
 
 ### 2.3 — Firebase Admin config (`lib/firebase/admin.ts`)
 
-- [ ] Create `lib/firebase/admin.ts`:
+- [x] Create `lib/firebase/admin.ts`:
   ```typescript
   import * as admin from 'firebase-admin'
 
@@ -166,19 +168,17 @@ Deployment    : Vercel
         clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
         privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       }),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     })
   }
 
   export const adminAuth = admin.auth()
   export const adminDb = admin.firestore()
-  export const adminStorage = admin.storage()
   export default admin
   ```
 
 ### 2.4 — API auth middleware (`lib/api-middleware.ts`)
 
-- [ ] Create `lib/api-middleware.ts`:
+- [x] Create `lib/api-middleware.ts`:
   ```typescript
   import { NextApiRequest, NextApiResponse } from 'next'
   import { adminAuth } from '@/lib/firebase/admin'
@@ -203,21 +203,21 @@ Deployment    : Vercel
 
 ### 2.5 — Auth session API routes
 
-- [ ] Create `pages/api/auth/session.ts` — handles POST (create session cookie from idToken) and DELETE (clear cookie):
+- [x] Create `pages/api/auth/session.ts` — handles POST (create session cookie from idToken) and DELETE (clear cookie):
   - POST: verify idToken with Firebase Admin → createSessionCookie (expiresIn: 7 days) → set HttpOnly cookie → return 200
   - DELETE: clear session cookie → return 200
 
 ### 2.6 — Auth hook (`hooks/useAuth.ts`)
 
-- [ ] Create `hooks/useAuth.ts` using `onAuthStateChanged` from Firebase client
-- [ ] Expose: `{ user, loading, signInWithGoogle, signOut }`
-- [ ] `signInWithGoogle` uses `signInWithPopup(auth, new GoogleAuthProvider())`
-- [ ] After signInWithPopup: get idToken → POST to `/api/auth/session` → redirect to `/dashboard`
-- [ ] `signOut`: DELETE `/api/auth/session` → `firebaseSignOut(auth)` → redirect to `/login`
+- [x] Create `hooks/useAuth.ts` using `onAuthStateChanged` from Firebase client
+- [x] Expose: `{ user, loading, signInWithGoogle, signOut }`
+- [x] `signInWithGoogle` uses `signInWithPopup(auth, new GoogleAuthProvider())`
+- [x] After signInWithPopup: get idToken → POST to `/api/auth/session` → redirect to `/dashboard`
+- [x] `signOut`: DELETE `/api/auth/session` → `firebaseSignOut(auth)` → redirect to `/login`
 
 ### 2.7 — Firestore security rules
 
-- [ ] Go to Firebase Console → Firestore → Rules → paste:
+- [x] Go to Firebase Console → Firestore → Rules → paste:
   ```
   rules_version = '2';
   service cloud.firestore {
@@ -251,20 +251,30 @@ Deployment    : Vercel
   }
   ```
 
-### 2.8 — Firebase Storage rules
+### 2.8 — Cloudinary setup (replaces Firebase Storage)
 
-- [ ] Go to Firebase Console → Storage → Rules → paste:
+- [x] Go to [cloudinary.com](https://cloudinary.com) → Sign Up Free (no credit card needed)
+- [x] Dashboard → copy **Cloud Name**, **API Key**, **API Secret** → paste into `.env.local`
+- [x] Also add the 3 Cloudinary vars to Vercel → Settings → Environment Variables
+- [x] Create `lib/cloudinary/client.ts`:
+  ```typescript
+  import { v2 as cloudinary } from 'cloudinary'
+
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  })
+
+  export default cloudinary
   ```
-  rules_version = '2';
-  service firebase.storage {
-    match /b/{bucket}/o {
-      match /{allPaths=**} {
-        allow read, write: if false;
-      }
-    }
-  }
-  ```
-  *(All access goes through Admin SDK on the server — never direct from client)*
+- [x] Create `lib/cloudinary/storage-helpers.ts`:
+  - `uploadBuffer(buffer, publicId, folder, resourceType)` → uploads Buffer, returns `{ url, publicId }`
+  - `getSignedUrl(publicId, expiresAt)` → returns signed download URL valid for 1 hour
+  - `deleteFile(publicId)` → deletes file from Cloudinary
+  - `downloadBuffer(url)` → fetches file Buffer from a Cloudinary URL (used by OCR)
+  > ⚠️ All Cloudinary calls are server-side only (API routes). Never expose `CLOUDINARY_API_SECRET` to the client.
 
 ---
 
@@ -523,11 +533,7 @@ Deployment    : Vercel
 
 ### 6.0 — Shared lib modules (create before API routes)
 
-- [ ] Create `lib/firebase/storage-helpers.ts`:
-  - `generateSignedUploadUrl(storagePath, mimeType, expiresInMs)` → returns signed PUT URL
-  - `generateSignedDownloadUrl(storagePath, expiresInMs)` → returns signed GET URL
-  - `downloadFileBuffer(storagePath)` → returns file Buffer from Storage
-  - Uses Firebase Admin Storage for all operations
+- [ ] ~~`lib/firebase/storage-helpers.ts`~~ → **use `lib/cloudinary/storage-helpers.ts` instead** (created in Phase 2.8)
 
 - [ ] Create `lib/gemini/client.ts`:
   - Initialize `GoogleGenerativeAI` with `GEMINI_API_KEY`
@@ -551,23 +557,23 @@ Deployment    : Vercel
 - [ ] POST handler:
   - Verify session cookie with `withAuth`
   - Accept: `{ fileType: 'aadhaar' | 'pan' | 'resume' | 'photo', fileName: string, mimeType: string }`
-  - Generate storage path: `employees/{employeeId}/{fileType}.{ext}`
-  - Use Firebase Admin Storage to generate a signed upload URL (1-hour expiry, `PUT` method)
+  - Generate Cloudinary public ID: `employees/{employeeId}/{fileType}`
+  - Use `lib/cloudinary/storage-helpers.ts` → `uploadBuffer()` to upload file to Cloudinary
   - Save file metadata to Firestore `/employees/{id}/files/{fileId}` with `ocrStatus: 'pending'`
-  - Return: `{ uploadUrl, fileId, storagePath }`
+  - Return: `{ fileId, cloudinaryUrl, publicId }`
   - Write audit log: action=FILE_UPLOAD
 
 - [ ] GET handler:
   - Return list of all files for employee from Firestore subcollection
-  - For each file, generate a signed download URL (1-hour expiry) using Admin Storage
+  - For each file, generate a signed download URL using `getSignedUrl()` from Cloudinary storage-helpers
 
 ### 6.2 — File upload component (`components/employees/FileUploadZone.tsx`)
 
 - [ ] Drag-and-drop zone + click to select file
 - [ ] Accept: image/jpeg, image/png, application/pdf — max 10MB
 - [ ] On file select:
-  1. POST to `/api/employees/{id}/files` → get signed upload URL
-  2. PUT file directly to Firebase Storage signed URL
+  1. POST to `/api/employees/{id}/files` with file as base64 or multipart
+  2. Server uploads to Cloudinary via `uploadBuffer()` → returns `cloudinaryUrl`
   3. Show success + "Extract with OCR" button
 - [ ] Show existing files list with type label, upload date, OCR status badge
 - [ ] View file button → open signed URL in new tab
@@ -576,8 +582,8 @@ Deployment    : Vercel
 ### 6.3 — OCR API route (`pages/api/ocr/extract.ts`)
 
 - [ ] POST handler with `withAuth`
-- [ ] Accept: `{ storagePath: string, fileType: 'aadhaar' | 'pan', employeeId: string, fileId: string }`
-- [ ] Download file buffer from Firebase Storage using Admin SDK
+- [ ] Accept: `{ cloudinaryUrl: string, fileType: 'aadhaar' | 'pan', employeeId: string, fileId: string }`
+- [ ] Download file buffer using `downloadBuffer(cloudinaryUrl)` from Cloudinary storage-helpers
 - [ ] Convert to base64
 - [ ] Send to Gemini 2.5 Flash with this exact prompt for Aadhaar:
   ```
@@ -734,10 +740,10 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
   - Page numbers footer
   - AirBuddy Aerospace branding
 - [ ] If `addSignature: true`:
-  - Fetch `settings/signature.png` from Firebase Storage using Admin SDK
+  - Fetch signature using `downloadBuffer(signatureUrl)` from Cloudinary (URL stored in `/settings/company`)
   - Use `pdf-lib` to overlay signature image on bottom-right of last page
   - Add text: `Signed on: {DD/MM/YYYY}`
-- [ ] Save PDF buffer to Firebase Storage: `documents/{employeeId}/{documentId}/v{N}.pdf`
+- [ ] Upload PDF buffer to Cloudinary using `uploadBuffer()` with public ID `documents/{employeeId}/{documentId}/v{N}`, resource_type=raw
 - [ ] Update version record in Firestore: `exportedAs: 'pdf'`, `exportStoragePath`, `hasSigned`
 - [ ] Write audit log: action=DOCUMENT_EXPORT
 - [ ] Return PDF as response with:
@@ -823,8 +829,8 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 - [ ] POST: accept signature image upload (multipart or base64)
 - [ ] Validate: must be PNG or JPG, max 2MB
-- [ ] Upload to Firebase Storage: `settings/signature.png`
-- [ ] Update `/settings/company` with `signatureStoragePath`
+- [ ] Upload to Cloudinary using `uploadBuffer()` with public ID `settings/signature`
+- [ ] Update `/settings/company` with `signatureCloudinaryUrl` (the returned Cloudinary URL)
 - [ ] Write audit log: action=SIGNATURE_UPDATE
 
 ### 11.3 — Settings page (`pages/settings.tsx`)
@@ -1015,8 +1021,9 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
   8. Audit log shows all actions ✓
 - [ ] Test unauthorized access: open incognito → go to `/dashboard` → should redirect to `/login`
 - [ ] Test with non-airbuddy.in email → should show access denied
-- [ ] Verify Storage URLs are not publicly accessible (try opening a file URL directly — should return 403)
+- [ ] Verify Cloudinary signed URLs expire correctly (try an expired URL — should return 401)
 - [ ] Set up Firebase billing alert: Console → Usage and billing → Set alert at ₹100/month
+- [ ] Monitor Cloudinary usage: Dashboard → Usage (free tier: 25 GB — sufficient for internal HR tool)
 
 ### 16.5 — Documentation
 
@@ -1086,7 +1093,7 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 - Gemini OCR may fail on heavily stylized or blurry Aadhaar scans — HR manual fallback handles this
 - Gemini free tier: 15 RPM — if OCR + AI improve triggered within same minute, second call may queue
 - PDF export uses `@react-pdf/renderer` which does not support all Markdown features (tables render as plain text)
-- Firebase Storage free tier: 5GB — monitor via Firebase Console → Usage
+- Cloudinary free tier: 25 GB storage + 25 GB bandwidth/month — monitor via Cloudinary Dashboard → Usage
 - Vercel Hobby Plan: 10-second API route timeout — Gemini calls are typically 3-8s, within limit
 - No offline support — requires internet connection
 
