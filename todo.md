@@ -533,7 +533,7 @@ Deployment    : Vercel
 
 ### 6.0 — Shared lib modules (create before API routes)
 
-- [ ] ~~`lib/firebase/storage-helpers.ts`~~ → **use `lib/cloudinary/storage-helpers.ts` instead** (created in Phase 2.8)
+- [ ] `lib/cloudinary/storage-helpers.ts` (created in Phase 2.8)
 
 - [ ] Create `lib/gemini/client.ts`:
   - Initialize `GoogleGenerativeAI` with `GEMINI_API_KEY`
