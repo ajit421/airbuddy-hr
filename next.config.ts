@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
-  serverExternalPackages: ['firebase-admin', 'jwks-rsa', 'jose'],
+  transpilePackages: ['firebase-admin', 'jose', 'jwks-rsa'],
+  experimental: {
+    esmExternals: 'loose',
+  }
 };
 
 export default nextConfig;
