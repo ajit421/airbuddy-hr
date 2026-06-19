@@ -486,42 +486,42 @@ Deployment    : Vercel
 
 ### 5.1 — Employee ID generator (`lib/employees/generate-id.ts`)
 
-- [ ] Create `lib/employees/generate-id.ts`:
+- [x] Create `lib/employees/generate-id.ts`:
   - Reads current counter from `/settings/company` Firestore doc
   - Increments counter using Firestore transaction
   - Returns formatted ID: `AB-{YEAR}-{NNN}` e.g. `AB-2024-001`
 
 ### 5.2 — Employee list page (`pages/employees/index.tsx`)
 
-- [ ] Fetch all employees from Firestore where `isDeleted == false`
-- [ ] Display in shadcn Table: Employee ID, Name, Department, Designation, Status badge, Actions
-- [ ] Search bar — client-side filter on name, employeeId, department
-- [ ] Status filter dropdown: All / Intern / Full-Time / Contract / Resigned / Terminated
-- [ ] "Add Employee" button → `/employees/new`
-- [ ] Row click → `/employees/[id]`
-- [ ] Status badge colors: full-time=green, intern=blue, contract=amber, resigned=red, terminated=gray
+- [x] Fetch all employees from Firestore where `isDeleted == false`
+- [x] Display in shadcn Table: Employee ID, Name, Department, Designation, Status badge, Actions
+- [x] Search bar — client-side filter on name, employeeId, department
+- [x] Status filter dropdown: All / Intern / Full-Time / Contract / Resigned / Terminated
+- [x] "Add Employee" button → `/employees/new`
+- [x] Row click → `/employees/[id]`
+- [x] Status badge colors: full-time=green, intern=blue, contract=amber, resigned=red, terminated=gray
 
 ### 5.3 — Create employee page (`pages/employees/new.tsx`)
 
-- [ ] Form with ALL employee fields (react-hook-form + zod validation)
-- [ ] Required fields: fullName, email, mobile, department, designation, joiningDate, status
-- [ ] Optional: fatherName, DOB, gender, aadhaarNumber, panNumber, address, salary, bankDetails
-- [ ] On submit: auto-generate employeeId → save to Firestore `/employees/{id}` → redirect to `/employees/{id}`
-- [ ] Write audit log: action=EMPLOYEE_CREATE
+- [x] Form with ALL employee fields (react-hook-form + zod validation)
+- [x] Required fields: fullName, email, mobile, department, designation, joiningDate, status
+- [x] Optional: fatherName, DOB, gender, aadhaarNumber, panNumber, address, salary, bankDetails
+- [x] On submit: auto-generate employeeId → save to Firestore `/employees/{id}` → redirect to `/employees/{id}`
+- [x] Write audit log: action=EMPLOYEE_CREATE
 
 ### 5.4 — Employee detail page (`pages/employees/[id]/index.tsx`)
 
-- [ ] Fetch employee by ID from Firestore
-- [ ] Display all fields in read mode by default
-- [ ] "Edit" button → inline edit mode (same form, pre-filled)
-- [ ] On save: update Firestore → write audit log: action=EMPLOYEE_UPDATE
-- [ ] Tabs: Overview | Files | Documents
-- [ ] "Generate Document" button → `/documents/generate?employeeId={id}`
-- [ ] "Delete" button (soft delete): only if user is super admin → set `isDeleted: true`, `deletedAt`, `deletedBy` → write audit log: action=EMPLOYEE_DELETE
+- [x] Fetch employee by ID from Firestore
+- [x] Display all fields in read mode by default
+- [x] "Edit" button → inline edit mode (same form, pre-filled)
+- [x] On save: update Firestore → write audit log: action=EMPLOYEE_UPDATE
+- [x] Tabs: Overview | Files | Documents
+- [x] "Generate Document" button → `/documents/generate?employeeId={id}`
+- [x] "Delete" button (soft delete): only if user is super admin → set `isDeleted: true`, `deletedAt`, `deletedBy` → write audit log: action=EMPLOYEE_DELETE
 
 ### 5.5 — Audit log helper (`lib/audit/logger.ts`)
 
-- [ ] Create `lib/audit/logger.ts` with function `createAuditLog(data)`:
+- [x] Create `lib/audit/logger.ts` with function `createAuditLog(data)`:
   - Uses Firebase **Admin SDK** (not client SDK) — called only from API routes
   - Always uses `admin.firestore.FieldValue.serverTimestamp()` for timestamp
   - Writes to `/audit_logs` collection
