@@ -12,14 +12,28 @@ import { FieldValue } from 'firebase-admin/firestore'
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     return withAuth(req, res, async () => {
-      const snap = await adminDb
-        .collection('employees')
-        .where('isDeleted', '==', false)
-        .orderBy('createdAt', 'desc')
-        .get()
+      try {
+        // NOTE: No orderBy here — composite index (isDeleted + createdAt) needs
+        // Firebase Console setup. We sort in memory to avoid the index requirement.
+        const snap = await adminDb
+          .collection('employees')
+          .where('isDeleted', '==', false)
+          .get()
 
-      const employees = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      return res.status(200).json({ employees })
+        const employees = snap.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          // Sort newest first using Firestore Timestamp _seconds field
+          .sort((a: any, b: any) => {
+            const aTs = a.createdAt?._seconds ?? a.createdAt?.seconds ?? 0
+            const bTs = b.createdAt?._seconds ?? b.createdAt?.seconds ?? 0
+            return bTs - aTs
+          })
+
+        return res.status(200).json({ employees })
+      } catch (err: any) {
+        console.error('[GET /api/employees] Firestore error:', err?.message ?? err)
+        return res.status(500).json({ error: 'Failed to fetch employees', detail: err?.message })
+      }
     })
   }
 

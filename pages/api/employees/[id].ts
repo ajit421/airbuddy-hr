@@ -17,11 +17,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const docRef = adminDb.collection('employees').doc(id)
 
+  /**
+   * Resolve the employee document — supports two URL formats:
+   *   1. Firestore doc ID:  /employees/ZxceoUiBySPgt6CTfGBB  (primary)
+   *   2. employeeId field:  /employees/AB-2026-001           (human-friendly fallback)
+   */
+  async function resolveDoc() {
+    const directSnap = await docRef.get()
+    if (directSnap.exists) return directSnap
+
+    // Fallback: query by employeeId field (e.g. AB-2026-001)
+    const querySnap = await adminDb
+      .collection('employees')
+      .where('employeeId', '==', id)
+      .limit(1)
+      .get()
+
+    if (!querySnap.empty) return querySnap.docs[0]
+    return null
+  }
+
   // ── GET ─────────────────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     return withAuth(req, res, async () => {
-      const snap = await docRef.get()
-      if (!snap.exists) return res.status(404).json({ error: 'Employee not found' })
+      const snap = await resolveDoc()
+      if (!snap) return res.status(404).json({ error: 'Employee not found' })
       return res.status(200).json({ employee: { id: snap.id, ...snap.data() } })
     })
   }
@@ -29,13 +49,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ── PUT (update) ─────────────────────────────────────────────────────────────
   if (req.method === 'PUT') {
     return withAuth(req, res, async (uid, email) => {
-      const snap = await docRef.get()
-      if (!snap.exists) return res.status(404).json({ error: 'Employee not found' })
+      const snap = await resolveDoc()
+      if (!snap) return res.status(404).json({ error: 'Employee not found' })
 
       // Strip fields that must never be overwritten via PUT
       const { id: _id, employeeId, isDeleted, deletedAt, deletedBy, createdAt, createdBy, ...updates } = req.body
 
-      await docRef.update({
+      await snap.ref.update({
         ...updates,
         updatedAt: FieldValue.serverTimestamp(),
         updatedBy: uid,
@@ -45,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await createAuditLog({
         action: 'EMPLOYEE_UPDATE',
         entityType: 'employee',
-        entityId: id,
+        entityId: snap.id,
         performedBy: uid,
         performedByEmail: email,
         metadata: { employeeId: data.employeeId, fullName: data.fullName },
@@ -58,13 +78,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ── DELETE (soft delete) ─────────────────────────────────────────────────────
   if (req.method === 'DELETE') {
     return withAuth(req, res, async (uid, email) => {
-      const snap = await docRef.get()
-      if (!snap.exists) return res.status(404).json({ error: 'Employee not found' })
+      const snap = await resolveDoc()
+      if (!snap) return res.status(404).json({ error: 'Employee not found' })
 
       const data = snap.data()!
       if (data.isDeleted) return res.status(400).json({ error: 'Employee already deleted' })
 
-      await docRef.update({
+      await snap.ref.update({
         isDeleted: true,
         deletedAt: new Date().toISOString(),
         deletedBy: uid,
@@ -75,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await createAuditLog({
         action: 'EMPLOYEE_DELETE',
         entityType: 'employee',
-        entityId: id,
+        entityId: snap.id,
         performedBy: uid,
         performedByEmail: email,
         metadata: { employeeId: data.employeeId, fullName: data.fullName },
