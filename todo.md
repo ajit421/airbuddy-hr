@@ -449,14 +449,14 @@ Deployment    : Vercel
 
 ### 4.1 — App layout (`components/layout/`)
 
-- [ ] Create `components/layout/AppLayout.tsx`:
+- [x] Create `components/layout/AppLayout.tsx`:
   - Sidebar (200px fixed left) + main content area
   - Sidebar items: Dashboard, Employees, Templates, Generate Doc, Audit Log, Settings
   - Bottom of sidebar: logged-in user avatar (initials), name, role, logout button
   - Active route highlighted using `useRouter().pathname`
   - Wrap content in `<AuthGuard>`
 
-- [ ] Create `components/layout/AuthGuard.tsx`:
+- [x] Create `components/layout/AuthGuard.tsx`:
   - Uses `useAuth()` hook
   - If `loading`: show full-page spinner
   - If `!user`: redirect to `/login`
@@ -464,7 +464,7 @@ Deployment    : Vercel
 
 ### 4.2 — Login page (`pages/login.tsx`)
 
-- [ ] Create `pages/login.tsx`:
+- [x] Create `pages/login.tsx`:
   - Centered card design
   - AirBuddy logo + "HR Document Platform"
   - "Sign in with Google" button — calls `signInWithGoogle()` from `useAuth`
@@ -473,12 +473,12 @@ Deployment    : Vercel
 
 ### 4.3 — `pages/_app.tsx`
 
-- [ ] Wrap app with Toaster (shadcn/ui) for global toast notifications
-- [ ] No extra providers needed — auth state comes from `useAuth` hook per-page
+- [x] Wrap app with Toaster (shadcn/ui) for global toast notifications
+- [x] No extra providers needed — auth state comes from `useAuth` hook per-page
 
 ### 4.4 — Index redirect (`pages/index.tsx`)
 
-- [ ] `pages/index.tsx` → just `router.replace('/dashboard')` or redirect via `getServerSideProps`
+- [x] `pages/index.tsx` → just `router.replace('/dashboard')` or redirect via `getServerSideProps`
 
 ---
 
