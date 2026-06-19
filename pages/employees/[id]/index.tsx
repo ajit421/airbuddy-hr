@@ -1,7 +1,7 @@
 // pages/employees/[id]/index.tsx
 // Employee detail page — read/edit toggle, tabs: Overview | Files | Documents
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -24,6 +24,9 @@ import {
 import { toast } from 'sonner'
 import { DEPARTMENTS } from '@/constants/departments'
 import type { Employee, EmployeeStatus } from '@/types/employee'
+import type { FileType } from '@/types/api'
+import FileUploadZone from '@/components/employees/FileUploadZone'
+import OCRReviewForm from '@/components/employees/OCRReviewForm'
 import {
   ArrowLeft, Pencil, X, Save, Trash2, FilePlus, Loader2
 } from 'lucide-react'
@@ -122,8 +125,32 @@ export default function EmployeeDetailPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Files tab state
+  const [files, setFiles] = useState<any[]>([])
+  const [filesLoading, setFilesLoading] = useState(false)
+  const [ocrReview, setOcrReview] = useState<{
+    fileId: string
+    fileType: FileType
+    data: Record<string, any>
+  } | null>(null)
+
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<EditFormData>({ resolver: zodResolver(editSchema) as any })
+
+  // Fetch files for this employee
+  const fetchFiles = useCallback(async () => {
+    if (!id) return
+    setFilesLoading(true)
+    try {
+      const res = await fetch(`/api/employees/${id}/files`)
+      const data = await res.json()
+      setFiles(data.files ?? [])
+    } catch {
+      // Silent — files are non-critical
+    } finally {
+      setFilesLoading(false)
+    }
+  }, [id])
 
   useEffect(() => {
     if (!id) return
@@ -135,7 +162,10 @@ export default function EmployeeDetailPage() {
       })
       .catch(() => toast.error('Failed to load employee'))
       .finally(() => setLoading(false))
-  }, [id])
+
+    // Also fetch files for the Files tab
+    fetchFiles()
+  }, [id, fetchFiles])
 
   function populateForm(emp: Employee) {
     reset({
@@ -473,12 +503,46 @@ export default function EmployeeDetailPage() {
             )}
           </TabsContent>
 
-          {/* ── Files Tab (built in Phase 6) ─────────────────────────── */}
+          {/* ── Files Tab ──────────────────────────────────────────── */}
           <TabsContent value="files">
-            <div className="rounded-xl border border-white/[0.06] bg-[#13161e] p-8 text-center">
-              <p className="text-slate-400 text-sm">
-                📎 File upload and OCR will be built in Phase 6.
-              </p>
+            <div className="flex flex-col gap-5">
+              {/* OCR Review Form — shown after successful OCR extraction */}
+              {ocrReview && (
+                <OCRReviewForm
+                  employeeId={id}
+                  fileId={ocrReview.fileId}
+                  fileType={ocrReview.fileType}
+                  ocrData={ocrReview.data}
+                  onSaved={() => {
+                    setOcrReview(null)
+                    // Refresh employee data to show updated fields
+                    fetch(`/api/employees/${id}`)
+                      .then((r) => r.json())
+                      .then((data) => {
+                        setEmployee(data.employee)
+                        populateForm(data.employee)
+                      })
+                    fetchFiles()
+                  }}
+                  onDismiss={() => setOcrReview(null)}
+                />
+              )}
+
+              {/* File Upload Zone */}
+              <FileUploadZone
+                employeeId={id}
+                files={files}
+                onFilesChange={fetchFiles}
+                onOcrComplete={(fileId, fileType, data) => {
+                  setOcrReview({ fileId, fileType, data })
+                }}
+              />
+
+              {filesLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                </div>
+              )}
             </div>
           </TabsContent>
 

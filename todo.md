@@ -533,28 +533,28 @@ Deployment    : Vercel
 
 ### 6.0 — Shared lib modules (create before API routes)
 
-- [ ] `lib/cloudinary/storage-helpers.ts` (created in Phase 2.8)
+- [x] `lib/cloudinary/storage-helpers.ts` (created in Phase 2.8)
 
-- [ ] Create `lib/gemini/client.ts`:
+- [x] Create `lib/gemini/client.ts`:
   - Initialize `GoogleGenerativeAI` with `GEMINI_API_KEY`
   - Export configured `gemini-2.5-flash` model instance
 
-- [ ] Create `lib/gemini/prompts.ts`:
+- [x] Create `lib/gemini/prompts.ts`:
   - Export all Gemini prompt strings (OCR Aadhaar, OCR PAN, AI document improve)
   - Single source of truth for all prompts
 
-- [ ] Create `lib/gemini/ocr.ts`:
+- [x] Create `lib/gemini/ocr.ts`:
   - `extractFromAadhaar(imageBuffer, mimeType)` → returns parsed JSON or raw text
   - `extractFromPAN(imageBuffer, mimeType)` → returns parsed JSON or raw text
   - Uses client from `lib/gemini/client.ts` + prompts from `lib/gemini/prompts.ts`
 
-- [ ] Create `lib/gemini/improve.ts`:
+- [x] Create `lib/gemini/improve.ts`:
   - `improveDocument(markdownContent, documentType)` → returns improved markdown
   - Uses client + prompts from shared modules
 
 ### 6.1 — File upload API route (`pages/api/employees/[id]/files/index.ts`)
 
-- [ ] POST handler:
+- [x] POST handler:
   - Verify session cookie with `withAuth`
   - Accept: `{ fileType: 'aadhaar' | 'pan' | 'resume' | 'photo', fileName: string, mimeType: string }`
   - Generate Cloudinary public ID: `employees/{employeeId}/{fileType}`
@@ -563,29 +563,29 @@ Deployment    : Vercel
   - Return: `{ fileId, cloudinaryUrl, publicId }`
   - Write audit log: action=FILE_UPLOAD
 
-- [ ] GET handler:
+- [x] GET handler:
   - Return list of all files for employee from Firestore subcollection
   - For each file, generate a signed download URL using `getSignedUrl()` from Cloudinary storage-helpers
 
 ### 6.2 — File upload component (`components/employees/FileUploadZone.tsx`)
 
-- [ ] Drag-and-drop zone + click to select file
-- [ ] Accept: image/jpeg, image/png, application/pdf — max 10MB
-- [ ] On file select:
+- [x] Drag-and-drop zone + click to select file
+- [x] Accept: image/jpeg, image/png, application/pdf — max 10MB
+- [x] On file select:
   1. POST to `/api/employees/{id}/files` with file as base64 or multipart
   2. Server uploads to Cloudinary via `uploadBuffer()` → returns `cloudinaryUrl`
   3. Show success + "Extract with OCR" button
-- [ ] Show existing files list with type label, upload date, OCR status badge
-- [ ] View file button → open signed URL in new tab
-- [ ] Delete file button → DELETE `/api/employees/{id}/files/{fileId}`
+- [x] Show existing files list with type label, upload date, OCR status badge
+- [x] View file button → open signed URL in new tab
+- [x] Delete file button → DELETE `/api/employees/{id}/files/{fileId}`
 
 ### 6.3 — OCR API route (`pages/api/ocr/extract.ts`)
 
-- [ ] POST handler with `withAuth`
-- [ ] Accept: `{ cloudinaryUrl: string, fileType: 'aadhaar' | 'pan', employeeId: string, fileId: string }`
-- [ ] Download file buffer using `downloadBuffer(cloudinaryUrl)` from Cloudinary storage-helpers
-- [ ] Convert to base64
-- [ ] Send to Gemini 2.5 Flash with this exact prompt for Aadhaar:
+- [x] POST handler with `withAuth`
+- [x] Accept: `{ cloudinaryUrl: string, fileType: 'aadhaar' | 'pan', employeeId: string, fileId: string }`
+- [x] Download file buffer using `downloadBuffer(cloudinaryUrl)` from Cloudinary storage-helpers
+- [x] Convert to base64
+- [x] Send to Gemini 2.5 Flash with this exact prompt for Aadhaar:
   ```
   Extract data from this Aadhaar card image. Return ONLY valid JSON, no explanation, no markdown.
   {
@@ -597,26 +597,26 @@ Deployment    : Vercel
   }
   If any field is unclear or missing, return "" for that field.
   ```
-- [ ] For PAN card, extract: `{ fullName, fatherName, dateOfBirth, panNumber }`
-- [ ] Parse Gemini response as JSON (wrap in try/catch)
-- [ ] Update Firestore file doc: `ocrStatus: 'completed'`, `ocrData: {...}`
-- [ ] Return: `{ success: true, data: {...} }` or `{ success: false, rawText: string }`
-- [ ] Write audit log: action=OCR_TRIGGERED
+- [x] For PAN card, extract: `{ fullName, fatherName, dateOfBirth, panNumber }`
+- [x] Parse Gemini response as JSON (wrap in try/catch)
+- [x] Update Firestore file doc: `ocrStatus: 'completed'`, `ocrData: {...}`
+- [x] Return: `{ success: true, data: {...} }` or `{ success: false, rawText: string }`
+- [x] Write audit log: action=OCR_TRIGGERED
 
 ### 6.4 — OCR review form (`components/employees/OCRReviewForm.tsx`)
 
-- [ ] Show extracted fields in editable inputs (pre-filled with OCR data)
-- [ ] Highlight fields with empty values in amber
-- [ ] "Confirm & Save to Profile" button:
+- [x] Show extracted fields in editable inputs (pre-filled with OCR data)
+- [x] Highlight fields with empty values in amber
+- [x] "Confirm & Save to Profile" button:
   - PATCH employee in Firestore with confirmed field values
   - Update file doc: `ocrReviewed: true`, `ocrReviewedAt`
   - Write audit log: action=OCR_REVIEWED
-- [ ] "Enter Manually" link — skip OCR, show blank form
+- [x] "Enter Manually" link — skip OCR, show blank form
 
 ### 6.5 — Files tab in employee detail page
 
-- [ ] Wire `FileUploadZone` and `OCRReviewForm` into `pages/employees/[id]/files.tsx`
-- [ ] Flow: Upload → OCR → Review → Save to profile → done
+- [x] Wire `FileUploadZone` and `OCRReviewForm` into `pages/employees/[id]/files.tsx`
+- [x] Flow: Upload → OCR → Review → Save to profile → done
 
 ---
 
