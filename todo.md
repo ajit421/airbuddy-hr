@@ -1,4 +1,4 @@
-﻿# AirBuddy HR Document Platform — Build TODO
+# AirBuddy HR Document Platform — Build TODO
 
 > **AI IDE Instructions:** Work through this file top to bottom, one task at a time.
 > Each task has a clear goal, file path, and tech context.
@@ -282,7 +282,7 @@ Deployment    : Vercel
 
 ### 3.1 — TypeScript types (`types/`)
 
-- [ ] Create `types/employee.ts` — Employee interface:
+- [x] Create `types/employee.ts` — Employee interface:
   ```typescript
   export type EmployeeStatus = 'intern' | 'full-time' | 'contract' | 'resigned' | 'terminated'
   export interface BankDetails {
@@ -320,7 +320,7 @@ Deployment    : Vercel
   }
   ```
 
-- [ ] Create `types/template.ts` — Template interface:
+- [x] Create `types/template.ts` — Template interface:
   ```typescript
   export type DocumentType = 'offer_letter' | 'nda' | 'internship_letter' | 'salary_slip' | 'experience_letter' | 'appointment_letter'
   export interface Template {
@@ -340,7 +340,7 @@ Deployment    : Vercel
   }
   ```
 
-- [ ] Create `types/document.ts` — Document and Version interfaces:
+- [x] Create `types/document.ts` — Document and Version interfaces:
   ```typescript
   export interface DocumentRecord {
     id: string
@@ -368,9 +368,9 @@ Deployment    : Vercel
   }
   ```
 
-- [ ] Create `types/audit.ts` — AuditLog interface with full action enum
+- [x] Create `types/audit.ts` — AuditLog interface with full action enum
 
-- [ ] Create `types/user.ts` — User interface (from system design Section 6.2):
+- [x] Create `types/user.ts` — User interface (from system design Section 6.2):
   ```typescript
   export interface User {
     uid: string
@@ -384,7 +384,7 @@ Deployment    : Vercel
   }
   ```
 
-- [ ] Create `types/settings.ts` — CompanySettings interface:
+- [x] Create `types/settings.ts` — CompanySettings interface:
   ```typescript
   export interface CompanySettings {
     companyName: string
@@ -403,11 +403,11 @@ Deployment    : Vercel
   }
   ```
 
-- [ ] Create `types/api.ts` — API request/response types (shared interfaces for API route handlers)
+- [x] Create `types/api.ts` — API request/response types (shared interfaces for API route handlers)
 
 ### 3.2 — Constants (`constants/`)
 
-- [ ] Create `constants/variable-registry.ts` — maps every `{{variable_name}}` to its employee field path:
+- [x] Create `constants/variable-registry.ts` — maps every `{{variable_name}}` to its employee field path:
   ```typescript
   export const VARIABLE_REGISTRY: Record<string, string> = {
     employee_id:     'employeeId',
@@ -438,10 +438,10 @@ Deployment    : Vercel
   export const ALL_VARIABLES = Object.keys(VARIABLE_REGISTRY)
   ```
 
-- [ ] Create `constants/departments.ts` — array of AirBuddy departments:
+- [x] Create `constants/departments.ts` — array of AirBuddy departments:
   `['Software', 'Electronics', 'Mechanical', 'Electrical', 'Electromagnetic', 'Material Science', 'R&D', 'Operations', 'HR', 'Management']`
 
-- [ ] Create `constants/document-types.ts` — document type labels and applicable status map
+- [x] Create `constants/document-types.ts` — document type labels and applicable status map
 
 ---
 
