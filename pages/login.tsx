@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/hooks/useAuth'
-import { Plane, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const { user, loading, signInWithGoogle, error } = useAuth()
@@ -49,8 +49,13 @@ export default function LoginPage() {
 
           {/* Logo + branding */}
           <div className="flex flex-col items-center mb-8">
-            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-500/30 mb-4">
-              <Plane className="w-8 h-8 text-white -rotate-45" />
+            <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-white shadow-xl shadow-black/30 mb-4 p-3">
+              {/* Drop your logo at: public/logo.png */}
+              <img
+                src="/logo.png"
+                alt="AirBuddy Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">AirBuddy</h1>
             <p className="text-sm text-slate-400 mt-1 tracking-wide">HR Document Platform</p>

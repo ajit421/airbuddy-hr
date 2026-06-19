@@ -10,7 +10,6 @@ import {
   ClipboardList,
   Settings,
   LogOut,
-  Plane,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -51,8 +50,13 @@ function SidebarContent() {
     <aside className="fixed top-0 left-0 h-screen w-[220px] flex flex-col bg-[#0f1117] border-r border-white/[0.06] z-40">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/[0.06]">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 shadow-lg shadow-indigo-500/30">
-          <Plane className="w-4 h-4 text-white -rotate-45" />
+        {/* Logo — drop at public/logo.png */}
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white shadow-md shrink-0 p-1">
+          <img
+            src="/logo.png"
+            alt="AirBuddy"
+            className="w-full h-full object-contain"
+          />
         </div>
         <div className="leading-tight">
           <p className="text-[13px] font-semibold text-white tracking-wide">AirBuddy</p>
