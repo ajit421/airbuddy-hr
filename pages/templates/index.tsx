@@ -174,13 +174,13 @@ function TemplateCard({ template, onToggle, onDelete }: TemplateCardProps) {
           {/* Delete */}
           <AlertDialog>
             <AlertDialogTrigger>
-              <button
+              <span
                 id={`btn-delete-${template.id}`}
                 title="Delete template"
-                className="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/[0.08] transition-colors"
+                className="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/[0.08] transition-colors inline-flex cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
-              </button>
+              </span>
             </AlertDialogTrigger>
             <AlertDialogContent className="bg-[#13161e] border-white/[0.08] text-white">
               <AlertDialogHeader>

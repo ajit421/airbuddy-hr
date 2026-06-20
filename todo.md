@@ -1,4 +1,4 @@
-﻿# AirBuddy HR Document Platform — Build TODO
+# AirBuddy HR Document Platform — Build TODO
 
 > **AI IDE Instructions:** Work through this file top to bottom, one task at a time.
 > Each task has a clear goal, file path, and tech context.
@@ -679,51 +679,51 @@ Deployment    : Vercel
 
 ### 8.1 — Document generation API (`pages/api/documents/generate.ts`)
 
-- [ ] POST handler with `withAuth`
-- [ ] Accept: `{ employeeId: string, templateId: string, customVariables?: Record<string, string> }`
-- [ ] Fetch employee + template + company settings from Firestore
-- [ ] Call `fillVariables()` → get filled markdown + missing list
-- [ ] Create document record in `/employees/{id}/documents/{docId}`
-- [ ] Create version v1 in `/employees/{id}/documents/{docId}/versions/v1`
-- [ ] Return: `{ documentId, markdownContent, missingVariables, versionId }`
-- [ ] Write audit log: action=DOCUMENT_GENERATE
+- [x] POST handler with `withAuth`
+- [x] Accept: `{ employeeId: string, templateId: string, customVariables?: Record<string, string> }`
+- [x] Fetch employee + template + company settings from Firestore
+- [x] Call `fillVariables()` → get filled markdown + missing list
+- [x] Create document record in `/employees/{id}/documents/{docId}`
+- [x] Create version v1 in `/employees/{id}/documents/{docId}/versions/v1`
+- [x] Return: `{ documentId, markdownContent, missingVariables, versionId }`
+- [x] Write audit log: action=DOCUMENT_GENERATE
 
 ### 8.2 — Document generator page (`pages/documents/generate/[employeeId].tsx`)
 
 This is the main multi-step workflow page. Implement as 4 steps in a single page with step indicator:
 
 **Step 1 — Select Template:**
-- [ ] Show employee name + status at top
-- [ ] List only templates where employee status is in `applicableStatus`
-- [ ] Template cards with name, type, variable count
-- [ ] Select template → move to Step 2
+- [x] Show employee name + status at top
+- [x] List only templates where employee status is in `applicableStatus`
+- [x] Template cards with name, type, variable count
+- [x] Select template → move to Step 2
 
 **Step 2 — Review Variables:**
-- [ ] POST to `/api/documents/generate` → get filled markdown + missing list
-- [ ] If missing variables: show form with labeled inputs for each missing variable, highlighted in amber
-- [ ] HR fills missing vars → re-generate → confirm → move to Step 3
-- [ ] If no missing vars: auto-proceed to Step 3
+- [x] POST to `/api/documents/generate` → get filled markdown + missing list
+- [x] If missing variables: show form with labeled inputs for each missing variable, highlighted in amber
+- [x] HR fills missing vars → re-generate → confirm → move to Step 3
+- [x] If no missing vars: auto-proceed to Step 3
 
 **Step 3 — Edit Document:**
-- [ ] `@uiw/react-md-editor` with split pane (editor left, preview right)
-- [ ] Show "⚠️ Missing variables" banner if any remain (red highlight)
-- [ ] "✨ AI Improve" button → calls AI improve workflow (see Phase 10)
-- [ ] "Continue to Export →" button → save current content → move to Step 4
+- [x] `@uiw/react-md-editor` with split pane (editor left, preview right)
+- [x] Show "⚠️ Missing variables" banner if any remain (red highlight)
+- [x] "✨ AI Improve" button → calls AI improve workflow (see Phase 10)
+- [x] "Continue to Export →" button → save current content → move to Step 4
 
 **Step 4 — Export:**
-- [ ] Signature toggle: "Add HR signature to PDF"
-- [ ] Export buttons: [Export PDF] [Export DOCX] [Export Markdown]
-- [ ] Each button calls respective export API route
-- [ ] On success: trigger file download + show success toast
-- [ ] "Version History" panel (collapsible) shows all previous versions
+- [x] Signature toggle: "Add HR signature to PDF"
+- [x] Export buttons: [Export PDF] [Export DOCX] [Export Markdown]
+- [x] Each button calls respective export API route
+- [x] On success: trigger file download + show success toast
+- [x] "Version History" panel (collapsible) shows all previous versions
 
 ### 8.3 — Save document version API (`pages/api/documents/[docId]/versions.ts`)
 
-- [ ] POST: save new version to Firestore subcollection
+- [x] POST: save new version to Firestore subcollection
   - Increment `currentVersion` counter on parent document
   - Accept: `{ employeeId, markdownContent, changeNote, aiImproved }`
   - Return: `{ versionId, versionNumber }`
-- [ ] GET: list all versions for a document
+- [x] GET: list all versions for a document
 
 ---
 
