@@ -12,7 +12,7 @@ import type { CompanySettings } from '@/types/settings'
 
 /**
  * Resolve a dot-notation path against an object without lodash.
- * e.g. getNestedValue(employee, 'address.city') → 'Pune'
+ * e.g. getNestedValue(employee, 'address.city') → 'Greater Noida'
  */
 function getNestedValue(obj: any, path: string): any {
   return path.split('.').reduce((acc, key) => acc?.[key], obj)

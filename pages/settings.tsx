@@ -154,7 +154,7 @@ export default function SettingsPage() {
                     id="company-address"
                     value={settings.companyAddress ?? ''}
                     onChange={set('companyAddress')}
-                    placeholder="123, Tech Park, Pune, Maharashtra 411001"
+                    placeholder="Phi 4, Greater Noida, Uttar Pradesh 201310"
                   />
                 </div>
                 <SettingsField
@@ -187,7 +187,7 @@ export default function SettingsPage() {
                   id="hr-name"
                   value={settings.hrName ?? ''}
                   onChange={set('hrName')}
-                  placeholder="Priya Sharma"
+                  placeholder="hr name"
                 />
                 <SettingsField
                   label="HR Designation"
