@@ -624,31 +624,31 @@ Deployment    : Vercel
 
 ### 7.1 — Template list page (`pages/templates/index.tsx`)
 
-- [ ] Fetch all templates from Firestore where `isActive == true`
-- [ ] Display as cards: name, type, applicable status badges, variable count, edit/delete actions
-- [ ] "Create Template" button → `/templates/new`
-- [ ] Toggle active/inactive (isActive field)
+- [x] Fetch all templates from Firestore where `isActive == true`
+- [x] Display as cards: name, type, applicable status badges, variable count, edit/delete actions
+- [x] "Create Template" button → `/templates/new`
+- [x] Toggle active/inactive (isActive field)
 
 ### 7.2 — Template editor page (`pages/templates/[id].tsx` + `pages/templates/new.tsx`)
 
-- [ ] Fields: name, type (dropdown), description, applicable status (multi-checkbox), markdownContent
-- [ ] Markdown editor: use `@uiw/react-md-editor` — split pane (edit left, preview right)
-- [ ] Variable picker panel: show all available `{{variables}}` from `VARIABLE_REGISTRY`
-- [ ] Click a variable chip → insert at cursor position in editor
-- [ ] Auto-extract variables from content using regex: `/\{\{([^}]+)\}\}/g`
-- [ ] Save extracted variable list to `variables: string[]` in Firestore
-- [ ] On save: write to `/templates/{id}` → write audit log: action=TEMPLATE_CREATE or TEMPLATE_UPDATE
+- [x] Fields: name, type (dropdown), description, applicable status (multi-checkbox), markdownContent
+- [x] Markdown editor: use `@uiw/react-md-editor` — split pane (edit left, preview right)
+- [x] Variable picker panel: show all available `{{variables}}` from `VARIABLE_REGISTRY`
+- [x] Click a variable chip → insert at cursor position in editor
+- [x] Auto-extract variables from content using regex: `/\{\{([^}]+)\}\}/g`
+- [x] Save extracted variable list to `variables: string[]` in Firestore
+- [x] On save: write to `/templates/{id}` → write audit log: action=TEMPLATE_CREATE or TEMPLATE_UPDATE
 
 ### 7.3 — Variable extraction utility (`lib/templates/extract-variables.ts`)
 
-- [ ] Function `extractVariables(markdown: string): string[]`
+- [x] Function `extractVariables(markdown: string): string[]`
   - Regex match all `{{variable_name}}` tokens
   - Return deduplicated array of variable names
 
 ### 7.4 — Variable fill engine (`lib/templates/fill-variables.ts`)
 
-- [ ] Function `fillVariables(template: string, employee: Employee, settings: CompanySettings): { result: string, missing: string[] }`
-- [ ] For each `{{variable}}` in template:
+- [x] Function `fillVariables(template: string, employee: Employee, settings: CompanySettings): { result: string, missing: string[] }`
+- [x] For each `{{variable}}` in template:
   - Look up in `VARIABLE_REGISTRY` → get field path
   - If path starts with `__settings.` → read from settings object
   - If path starts with `__computed.` → compute (e.g. today's date)
@@ -659,19 +659,19 @@ Deployment    : Vercel
     }
     ```
   - If value is empty/undefined → add to `missing[]` array, leave `{{variable}}` in place
-- [ ] Return filled markdown + list of missing variables
+- [x] Return filled markdown + list of missing variables
 
 ### 7.5 — Default template seeder (`lib/templates/seed-defaults.ts`)
 
-- [ ] Function `seedDefaultTemplates()` — checks if templates collection is empty → if yes, inserts 6 default templates:
+- [x] Function `seedDefaultTemplates()` — checks if templates collection is empty → if yes, inserts 6 default templates:
   1. Offer Letter
   2. Internship Letter
   3. NDA Agreement
   4. Salary Slip
   5. Experience Letter
   6. Appointment Letter
-- [ ] Each template has proper Markdown content with all relevant `{{variables}}`
-- [ ] Call this function from `pages/api/settings/index.ts` GET on first load check
+- [x] Each template has proper Markdown content with all relevant `{{variables}}`
+- [x] Call this function from `pages/api/settings/index.ts` GET on first load check
 
 ---
 
