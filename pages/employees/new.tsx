@@ -217,16 +217,16 @@ export default function NewEmployeePage() {
           {/* Basic Info */}
           <Section title="Basic Information">
             <Field label="Full Name" required error={errors.fullName?.message}>
-              <FormInput id="fullName" placeholder="e.g. Ajit Kumar" {...register('fullName')} />
+              <FormInput id="fullName" placeholder="Enter Full Name" {...register('fullName')} />
             </Field>
             <Field label="Email" required error={errors.email?.message}>
-              <FormInput id="email" type="email" placeholder="ajit@airbuddy.in" {...register('email')} />
+              <FormInput id="email" type="email" placeholder="Enter Email Address" {...register('email')} />
             </Field>
             <Field label="Mobile" required error={errors.mobile?.message}>
-              <FormInput id="mobile" placeholder="+91 9876543210" {...register('mobile')} />
+              <FormInput id="mobile" placeholder="Enter Mobile Number" {...register('mobile')} />
             </Field>
             <Field label="Father's Name" error={errors.fatherName?.message}>
-              <FormInput id="fatherName" placeholder="e.g. Ramesh Kumar" {...register('fatherName')} />
+              <FormInput id="fatherName" placeholder="Enter Father's Name" {...register('fatherName')} />
             </Field>
             <Field label="Date of Birth" error={errors.dateOfBirth?.message}>
               <FormInput id="dateOfBirth" type="date" {...register('dateOfBirth')}
@@ -279,17 +279,17 @@ export default function NewEmployeePage() {
               />
             </Field>
             <Field label="Monthly Salary (₹)" error={errors.salary?.message}>
-              <FormInput id="salary" type="number" placeholder="e.g. 50000" {...register('salary')} />
+              <FormInput id="salary" type="number" placeholder="Enter Monthly Salary" {...register('salary')} />
             </Field>
           </Section>
 
           {/* Government IDs */}
           <Section title="Government IDs">
             <Field label="Aadhaar Number" error={errors.aadhaarNumber?.message}>
-              <FormInput id="aadhaarNumber" placeholder="XXXX XXXX XXXX" {...register('aadhaarNumber')} />
+              <FormInput id="aadhaarNumber" placeholder="e.g. 1234 5678 9012" {...register('aadhaarNumber')} />
             </Field>
             <Field label="PAN Number" error={errors.panNumber?.message}>
-              <FormInput id="panNumber" placeholder="ABCDE1234F" {...register('panNumber')} className="uppercase" />
+              <FormInput id="panNumber" placeholder="e.g. ABCDE1234F" {...register('panNumber')} className="uppercase" />
             </Field>
           </Section>
 
@@ -302,10 +302,10 @@ export default function NewEmployeePage() {
               <FormInput id="addressCity" placeholder="City" {...register('addressCity')} />
             </Field>
             <Field label="State" error={errors.addressState?.message}>
-              <FormInput id="addressState" placeholder="State" {...register('addressState')} />
+              <FormInput id="addressState" placeholder="Enter State" {...register('addressState')} />
             </Field>
             <Field label="Pincode" error={errors.addressPincode?.message}>
-              <FormInput id="addressPincode" placeholder="560001" {...register('addressPincode')} />
+              <FormInput id="addressPincode" placeholder="Enter Pincode" {...register('addressPincode')} />
             </Field>
           </Section>
 
