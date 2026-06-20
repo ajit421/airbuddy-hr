@@ -1,4 +1,4 @@
-# AirBuddy HR Document Platform — Build TODO
+﻿# AirBuddy HR Document Platform — Build TODO
 
 > **AI IDE Instructions:** Work through this file top to bottom, one task at a time.
 > Each task has a clear goal, file path, and tech context.
