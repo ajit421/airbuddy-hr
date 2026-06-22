@@ -265,10 +265,31 @@ export default function GenerateDocPage() {
       if (!documentId || !employeeId) return
       setExporting(format)
       try {
-        const res = await fetch(
-          `/api/export/${format}?documentId=${documentId}&employeeId=${employeeId}&addSignature=${addSignature}`,
-          { method: 'GET' }
-        )
+        // Fetch the latest versionId for this document
+        let versionId = documentId // fallback
+        try {
+          const vRes = await fetch(`/api/documents/${documentId}/versions?employeeId=${employeeId}`)
+          if (vRes.ok) {
+            const vData = await vRes.json()
+            const latestVersion = (vData.versions ?? [])[0]
+            if (latestVersion?.id) versionId = latestVersion.id
+          }
+        } catch {
+          // non-fatal — use fallback versionId
+        }
+
+        const res = await fetch(`/api/export/${format}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            markdownContent,
+            employeeId,
+            documentId,
+            versionId,
+            addSignature,
+            documentTitle: selectedTemplate?.name ?? 'Document',
+          }),
+        })
         if (!res.ok) {
           const err = await res.json()
           throw new Error(err.error || 'Export failed')
@@ -288,7 +309,7 @@ export default function GenerateDocPage() {
         setExporting(null)
       }
     },
-    [documentId, employeeId, addSignature, selectedTemplate]
+    [documentId, employeeId, addSignature, markdownContent, selectedTemplate]
   )
 
   // ── Version history ─────────────────────────────────────────────────────────

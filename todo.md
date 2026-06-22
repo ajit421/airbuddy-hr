@@ -731,22 +731,22 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 9.1 — PDF export API (`pages/api/export/pdf.ts`)
 
-- [ ] POST handler with `withAuth`
-- [ ] Accept: `{ markdownContent: string, employeeId: string, documentId: string, versionId: string, addSignature: boolean, documentTitle: string }`
-- [ ] Convert Markdown to HTML (use `marked` npm package)
-- [ ] Generate PDF using `@react-pdf/renderer`:
+- [x] POST handler with `withAuth`
+- [x] Accept: `{ markdownContent: string, employeeId: string, documentId: string, versionId: string, addSignature: boolean, documentTitle: string }`
+- [x] Convert Markdown to HTML (use `marked` npm package)
+- [x] Generate PDF using `@react-pdf/renderer`:
   - Company name header on page 1
   - Rendered document content
   - Page numbers footer
   - AirBuddy Aerospace branding
-- [ ] If `addSignature: true`:
+- [x] If `addSignature: true`:
   - Fetch signature using `downloadBuffer(signatureUrl)` from Cloudinary (URL stored in `/settings/company`)
   - Use `pdf-lib` to overlay signature image on bottom-right of last page
   - Add text: `Signed on: {DD/MM/YYYY}`
-- [ ] Upload PDF buffer to Cloudinary using `uploadBuffer()` with public ID `documents/{employeeId}/{documentId}/v{N}`, resource_type=raw
-- [ ] Update version record in Firestore: `exportedAs: 'pdf'`, `exportStoragePath`, `hasSigned`
-- [ ] Write audit log: action=DOCUMENT_EXPORT
-- [ ] Return PDF as response with:
+- [x] Upload PDF buffer to Cloudinary using `uploadBuffer()` with public ID `documents/{employeeId}/{documentId}/v{N}`, resource_type=raw
+- [x] Update version record in Firestore: `exportedAs: 'pdf'`, `exportStoragePath`, `hasSigned`
+- [x] Write audit log: action=DOCUMENT_EXPORT
+- [x] Return PDF as response with:
   ```
   Content-Type: application/pdf
   Content-Disposition: attachment; filename="{employeeId}_{documentTitle}_{date}.pdf"
@@ -754,29 +754,29 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 9.2 — DOCX export API (`pages/api/export/docx.ts`)
 
-- [ ] POST handler with `withAuth`
-- [ ] Accept: `{ markdownContent: string, employeeId: string, documentId: string, documentTitle: string }`
-- [ ] Use `docx` npm package to generate a Word document from Markdown content:
+- [x] POST handler with `withAuth`
+- [x] Accept: `{ markdownContent: string, employeeId: string, documentId: string, documentTitle: string }`
+- [x] Use `docx` npm package to generate a Word document from Markdown content:
   - Parse Markdown headings → Word headings
   - Parse bold/italic → Word character styles
   - Each paragraph → Word paragraph
-- [ ] Return DOCX as response:
+- [x] Return DOCX as response:
   ```
   Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
   Content-Disposition: attachment; filename="{employeeId}_{documentTitle}_{date}.docx"
   ```
-- [ ] Write audit log: action=DOCUMENT_EXPORT
+- [x] Write audit log: action=DOCUMENT_EXPORT
 
 ### 9.3 — Markdown export API (`pages/api/export/md.ts`)
 
-- [ ] POST handler with `withAuth`
-- [ ] Accept: `{ markdownContent: string, documentTitle: string, employeeId: string }`
-- [ ] Return markdown as response:
+- [x] POST handler with `withAuth`
+- [x] Accept: `{ markdownContent: string, documentTitle: string, employeeId: string }`
+- [x] Return markdown as response:
   ```
   Content-Type: text/markdown
   Content-Disposition: attachment; filename="{employeeId}_{documentTitle}_{date}.md"
   ```
-- [ ] Write audit log: action=DOCUMENT_EXPORT
+- [x] Write audit log: action=DOCUMENT_EXPORT
 
 ---
 
