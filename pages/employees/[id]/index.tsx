@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import AppLayout from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -23,12 +24,16 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { DEPARTMENTS } from '@/constants/departments'
+import { getDocumentTypeLabel } from '@/constants/document-types'
 import type { Employee, EmployeeStatus } from '@/types/employee'
+import type { DocumentRecord } from '@/types/document'
 import type { FileType } from '@/types/api'
 import FileUploadZone from '@/components/employees/FileUploadZone'
 import OCRReviewForm from '@/components/employees/OCRReviewForm'
+import VersionHistoryList from '@/components/documents/VersionHistoryList'
 import {
-  ArrowLeft, Pencil, X, Save, Trash2, FilePlus, Loader2
+  ArrowLeft, Pencil, X, Save, Trash2, FilePlus, Loader2,
+  FileText, ChevronDown, ChevronUp,
 } from 'lucide-react'
 
 // ── Status badge ────────────────────────────────────────────────────────────
@@ -134,6 +139,11 @@ export default function EmployeeDetailPage() {
     data: Record<string, any>
   } | null>(null)
 
+  // Documents tab state
+  const [documents, setDocuments] = useState<DocumentRecord[]>([])
+  const [documentsLoading, setDocumentsLoading] = useState(false)
+  const [expandedDocId, setExpandedDocId] = useState<string | null>(null)
+
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
     useForm<EditFormData>({ resolver: zodResolver(editSchema) as any })
 
@@ -152,6 +162,21 @@ export default function EmployeeDetailPage() {
     }
   }, [id])
 
+  // Fetch documents for this employee
+  const fetchDocuments = useCallback(async () => {
+    if (!id) return
+    setDocumentsLoading(true)
+    try {
+      const res = await fetch(`/api/employees/${id}/documents`)
+      const data = await res.json()
+      setDocuments(data.documents ?? [])
+    } catch {
+      // Silent — documents list is non-critical
+    } finally {
+      setDocumentsLoading(false)
+    }
+  }, [id])
+
   useEffect(() => {
     if (!id) return
     fetch(`/api/employees/${id}`)
@@ -163,9 +188,10 @@ export default function EmployeeDetailPage() {
       .catch(() => toast.error('Failed to load employee'))
       .finally(() => setLoading(false))
 
-    // Also fetch files for the Files tab
+    // Also fetch files and documents for their respective tabs
     fetchFiles()
-  }, [id, fetchFiles])
+    fetchDocuments()
+  }, [id, fetchFiles, fetchDocuments])
 
   function populateForm(emp: Employee) {
     reset({
@@ -546,17 +572,137 @@ export default function EmployeeDetailPage() {
             </div>
           </TabsContent>
 
-          {/* ── Documents Tab (built in Phase 14) ───────────────────── */}
+          {/* ── Documents Tab — Phase 14 ───────────────────────────── */}
           <TabsContent value="documents">
-            <div className="rounded-xl border border-white/[0.06] bg-[#13161e] p-8 text-center">
-              <p className="text-slate-400 text-sm">
-                📄 Document history will be built in Phase 14.
-              </p>
-              <Link href={`/documents/generate?employeeId=${id}`}>
-                <Button className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white gap-2">
-                  <FilePlus className="w-4 h-4" /> Generate Document Now
-                </Button>
-              </Link>
+            <div className="flex flex-col gap-4">
+              {/* Header row */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-400">
+                  {documents.length > 0
+                    ? `${documents.length} document${documents.length !== 1 ? 's' : ''} generated`
+                    : 'No documents generated yet.'}
+                </p>
+                <Link href={`/documents/generate/${id}`}>
+                  <Button
+                    id="btn-generate-document-tab"
+                    size="sm"
+                    className="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 gap-1.5"
+                  >
+                    <FilePlus className="w-3.5 h-3.5" />
+                    Generate New
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Loading state */}
+              {documentsLoading ? (
+                <div className="flex flex-col gap-3">
+                  {[1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-white/[0.06] bg-[#13161e] p-5 animate-pulse"
+                    >
+                      <div className="h-4 bg-white/[0.06] rounded w-48 mb-2" />
+                      <div className="h-3 bg-white/[0.04] rounded w-24" />
+                    </div>
+                  ))}
+                </div>
+              ) : documents.length === 0 ? (
+                /* Empty state */
+                <div className="rounded-xl border border-white/[0.06] bg-[#13161e] p-10 text-center">
+                  <FileText className="w-10 h-10 text-slate-700 mx-auto mb-3" />
+                  <p className="text-slate-400 font-medium text-sm">No documents yet</p>
+                  <p className="text-slate-600 text-xs mt-1 mb-4">
+                    Generate an offer letter, NDA, salary slip or any HR document.
+                  </p>
+                  <Link href={`/documents/generate/${id}`}>
+                    <Button
+                      id="btn-generate-first-doc"
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
+                    >
+                      <FilePlus className="w-4 h-4" />
+                      Generate Document
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                /* Document list — accordion */
+                <div className="flex flex-col gap-3">
+                  {documents.map((doc) => {
+                    const isExpanded = expandedDocId === doc.id
+                    return (
+                      <div
+                        key={doc.id}
+                        className="rounded-xl border border-white/[0.06] bg-[#13161e] overflow-hidden"
+                      >
+                        {/* Document header row — click to expand */}
+                        <button
+                          id={`btn-expand-doc-${doc.id}`}
+                          onClick={() =>
+                            setExpandedDocId(isExpanded ? null : doc.id)
+                          }
+                          className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.02] transition-colors group"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4 text-indigo-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-white text-sm font-medium truncate">
+                                {doc.title}
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] text-slate-400 border-white/10 py-0 px-1.5"
+                                >
+                                  {getDocumentTypeLabel(doc.documentType)}
+                                </Badge>
+                                <span className="text-slate-600 text-xs">
+                                  v{doc.currentVersion} •{' '}
+                                  {new Date(doc.updatedAt).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] py-0 px-1.5 ${
+                                    doc.status === 'final'
+                                      ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+                                      : 'text-amber-400 border-amber-500/20 bg-amber-500/5'
+                                  }`}
+                                >
+                                  {doc.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="shrink-0 ml-3 text-slate-500 group-hover:text-slate-300 transition-colors">
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Version history — shown when expanded */}
+                        {isExpanded && (
+                          <div className="border-t border-white/[0.06]">
+                            <VersionHistoryList
+                              employeeId={id}
+                              documentId={doc.id}
+                              documentTitle={doc.title}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -564,3 +710,4 @@ export default function EmployeeDetailPage() {
     </AppLayout>
   )
 }
+

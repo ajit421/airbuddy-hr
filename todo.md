@@ -900,16 +900,16 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 14.1 — Version history component (`components/documents/VersionHistoryList.tsx`)
 
-- [ ] Fetch from `/employees/{id}/documents/{docId}/versions` ordered by `versionNumber` DESC
-- [ ] Show: version number, date, export format badge, signed badge, AI improved badge
-- [ ] "View" button: fetch version → open in read-only markdown preview modal
-- [ ] "Re-export" button: open export panel with this version's content
+- [x] Fetch from `/employees/{id}/documents/{docId}/versions` ordered by `versionNumber` DESC
+- [x] Show: version number, date, export format badge, signed badge, AI improved badge
+- [x] "View" button: fetch version → open in read-only markdown preview modal
+- [x] "Re-export" button: open export panel with this version's content
 
 ### 14.2 — Documents tab in employee detail
 
-- [ ] List all document records for employee (from `/employees/{id}/documents`)
-- [ ] Show: document title, type, current version, last updated
-- [ ] Click → show version history for that document
+- [x] List all document records for employee (from `/employees/{id}/documents`)
+- [x] Show: document title, type, current version, last updated
+- [x] Click → show version history for that document
 
 ---
 
