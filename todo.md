@@ -858,25 +858,25 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 12.1 — Audit API (`pages/api/audit/index.ts`)
 
-- [ ] GET with `withAuth`
-- [ ] Query `/audit_logs` ordered by `timestamp` DESC
-- [ ] Support query params: `limit=50`, `action=`, `entityType=`, `startDate=`, `endDate=`
-- [ ] Return paginated results
+- [x] GET with `withAuth`
+- [x] Query `/audit_logs` ordered by `timestamp` DESC
+- [x] Support query params: `limit=50`, `action=`, `entityType=`, `startDate=`, `endDate=`
+- [x] Return paginated results
 
 ### 12.2 — Audit log page (`pages/audit.tsx`)
 
-- [ ] Table: Timestamp, Action, Entity Type, Entity ID, User Email, IP Address
-- [ ] Action filter dropdown
-- [ ] Date range picker (start/end)
-- [ ] Color-coded action badges:
+- [x] Table: Timestamp, Action, Entity Type, Entity ID, User Email, IP Address
+- [x] Action filter dropdown
+- [x] Date range picker (start/end)
+- [x] Color-coded action badges:
   - LOGIN/LOGOUT = gray
   - CREATE = green
   - UPDATE = blue
   - DELETE = red
   - EXPORT = purple
   - OCR = amber
-- [ ] Paginate: show 50 per page, "Load more" button
-- [ ] No delete or edit buttons anywhere on this page — read-only
+- [x] Paginate: show 50 per page, "Load more" button
+- [x] No delete or edit buttons anywhere on this page — read-only
 
 ---
 
