@@ -4,8 +4,9 @@ import { UploadApiResponse } from 'cloudinary'
 type ResourceType = 'image' | 'raw' | 'auto'
 
 /**
- * Upload a Buffer to Cloudinary.
- * Returns the secure URL and the public_id (used for future operations).
+ * Upload a Buffer to Cloudinary using AUTHENTICATED delivery.
+ * Requires a signed URL to access (use getSignedUrl).
+ * Used for sensitive documents uploaded by users.
  */
 export async function uploadBuffer(
   buffer: Buffer,
@@ -19,7 +20,6 @@ export async function uploadBuffer(
         public_id: publicId,
         folder,
         resource_type: resourceType,
-        // Use signed private delivery (requires signed URLs to access)
         type: 'authenticated',
         overwrite: true,
       },
@@ -33,8 +33,38 @@ export async function uploadBuffer(
 }
 
 /**
- * Generate a signed download URL valid for the given number of seconds (default 1 hour).
- * Use this when the file was uploaded with type: 'authenticated'.
+ * Upload a Buffer to Cloudinary using PUBLIC delivery.
+ * The returned secure_url is directly downloadable without signing.
+ * Used for HR signature images (internal, non-sensitive).
+ */
+export async function uploadPublicBuffer(
+  buffer: Buffer,
+  publicId: string,
+  folder: string,
+  resourceType: ResourceType = 'image'
+): Promise<{ url: string; publicId: string }> {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        public_id: publicId,
+        folder,
+        resource_type: resourceType,
+        type: 'upload',    // public — URL directly accessible, no signing needed
+        overwrite: true,
+      },
+      (error, result: UploadApiResponse | undefined) => {
+        if (error || !result) return reject(error ?? new Error('Upload failed'))
+        resolve({ url: result.secure_url, publicId: result.public_id })
+      }
+    )
+    uploadStream.end(buffer)
+  })
+}
+
+/**
+ * Generate a signed download URL valid for the given number of seconds.
+ * Only works for files uploaded with type: 'authenticated'.
+ * IMPORTANT: publicId must be the Cloudinary public_id string, NOT a URL.
  */
 export function getSignedUrl(publicId: string, expiresInSeconds = 3600): string {
   const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds
@@ -58,8 +88,8 @@ export async function deleteFile(
 }
 
 /**
- * Download a file from a Cloudinary URL and return its Buffer.
- * Used by the OCR API to read uploaded Aadhaar/PAN images.
+ * Download a file from any HTTPS URL and return its Buffer.
+ * Works for public Cloudinary URLs and signed Cloudinary URLs.
  */
 export async function downloadBuffer(url: string): Promise<Buffer> {
   const res = await fetch(url)
@@ -67,3 +97,4 @@ export async function downloadBuffer(url: string): Promise<Buffer> {
   const arrayBuffer = await res.arrayBuffer()
   return Buffer.from(arrayBuffer)
 }
+

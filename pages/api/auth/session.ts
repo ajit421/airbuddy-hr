@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { adminAuth } from '@/lib/firebase/admin'
+import { adminAuth, adminDb } from '@/lib/firebase/admin'
 
 // Cookie settings
 const SESSION_COOKIE_NAME = 'session'
@@ -20,6 +20,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'Set-Cookie',
         `${SESSION_COOKIE_NAME}=${sessionCookie}; Max-Age=${SESSION_EXPIRES_MS / 1000}; Path=/; HttpOnly; SameSite=Lax; ${process.env.NODE_ENV === 'production' ? 'Secure;' : ''}`
       )
+
+      // 11.4 — Initialize company settings on first login if they don’t exist
+      initSettingsIfNeeded().catch((err) =>
+        console.error('[Session] Settings init error (non-blocking):', err)
+      )
+
       return res.status(200).json({ status: 'ok' })
     } catch (err) {
       console.error('Session creation error:', err)
@@ -37,4 +43,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   return res.status(405).json({ error: 'Method not allowed' })
+}
+
+/**
+ * Phase 11.4 — Ensure /settings/company exists with default values.
+ * Called once on each login (non-blocking). Uses set({ merge: false }) via
+ * create() which is a no-op if the document already exists.
+ */
+async function initSettingsIfNeeded(): Promise<void> {
+  const ref = adminDb.doc('settings/company')
+  const snap = await ref.get()
+  if (!snap.exists) {
+    await ref.set({
+      companyName: '',
+      companyAddress: '',
+      companyCIN: '',
+      companyEmail: '',
+      companyPhone: '',
+      hrName: '',
+      hrDesignation: '',
+      signatureStoragePath: '',
+      employeeIdPrefix: 'AB',
+      employeeIdYear: new Date().getFullYear(),
+      employeeIdCounter: 0,
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'system',
+    })
+    console.log('[Session] Initialized /settings/company with defaults.')
+  }
 }

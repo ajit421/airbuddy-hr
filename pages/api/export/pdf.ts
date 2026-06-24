@@ -15,7 +15,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { withAuth } from '@/lib/api-middleware'
 import { adminDb } from '@/lib/firebase/admin'
 import { createAuditLog } from '@/lib/audit/logger'
-import { downloadBuffer, uploadBuffer, getSignedUrl } from '@/lib/cloudinary/storage-helpers'
+import { downloadBuffer, uploadBuffer } from '@/lib/cloudinary/storage-helpers'
 import { HRPdfDocument } from '@/lib/export/pdf-renderer'
 import { format } from 'date-fns'
 import React from 'react'
@@ -88,8 +88,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       let hasSigned = false
       if (addSignature && settings.signatureStoragePath) {
         try {
-          const signedUrl = getSignedUrl(settings.signatureStoragePath, 3600)
-          const sigBuffer = await downloadBuffer(signedUrl)
+          // signatureStoragePath stores the direct Cloudinary HTTPS URL
+          // (uploaded with type:'upload' / public delivery — downloadable directly).
+          console.log('[PDF Export] Downloading signature from:', settings.signatureStoragePath)
+          const sigBuffer = await downloadBuffer(settings.signatureStoragePath)
 
           const pdfDoc = await PDFDocument.load(pdfBuffer)
           const pages = pdfDoc.getPages()

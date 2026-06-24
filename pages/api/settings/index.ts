@@ -1,6 +1,6 @@
 // pages/api/settings/index.ts
 // GET  — fetch company settings (and seed default templates on first load)
-// PATCH — update company settings
+// PUT / PATCH — update company settings
 
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { withAuth } from '@/lib/api-middleware'
@@ -32,8 +32,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   }
 
-  // ── PATCH ─────────────────────────────────────────────────────────────────
-  if (req.method === 'PATCH') {
+  // ── PUT / PATCH ───────────────────────────────────────────────────────────
+  if (req.method === 'PUT' || req.method === 'PATCH') {
     return await withAuth(req, res, async (uid, email) => {
       try {
         const updates = { ...req.body }
@@ -53,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         res.status(200).json({ success: true })
       } catch (err) {
-        console.error('[PATCH /api/settings]', err)
+        console.error('[PUT /api/settings]', err)
         res.status(500).json({ error: 'Failed to update settings.' })
       }
     })

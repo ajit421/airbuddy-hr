@@ -1,7 +1,8 @@
 // pages/settings.tsx
 // Company settings page — view and edit HR/company configuration
+// Phase 11.3: Company Information + HR Signatory + HR Signature upload
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,7 +10,20 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import type { CompanySettings } from '@/types/settings'
-import { Settings, Save, Loader2, Building2, User, Hash } from 'lucide-react'
+import {
+  Settings,
+  Save,
+  Loader2,
+  Building2,
+  User,
+  Hash,
+  PenLine,
+  Upload,
+  AlertTriangle,
+  CheckCircle2,
+  ImageOff,
+} from 'lucide-react'
+import Image from 'next/image'
 
 const inputCls =
   'bg-[#0e1017] border-white/[0.08] text-slate-100 placeholder:text-slate-500 focus-visible:ring-indigo-500/50'
@@ -49,6 +63,197 @@ function SettingsField({
   )
 }
 
+// ─── Signature Section ────────────────────────────────────────────────────────
+
+function SignatureSection({
+  currentUrl,
+  onUploaded,
+}: {
+  currentUrl: string
+  onUploaded: (url: string) => void
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl || null)
+  const [imgError, setImgError] = useState(false)
+
+  // Sync preview when parent loads
+  useEffect(() => {
+    if (currentUrl) {
+      setPreviewUrl(currentUrl)
+      setImgError(false)
+    }
+  }, [currentUrl])
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Client-side validation
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg']
+    if (!allowed.includes(file.type)) {
+      toast.error('Only PNG or JPG images are allowed.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File too large. Maximum signature size is 2 MB.')
+      return
+    }
+
+    // Show local preview immediately
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+    setImgError(false)
+
+    setUploading(true)
+    try {
+      // Read as base64
+      const base64 = await fileToBase64(file)
+
+      const res = await fetch('/api/settings/signature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Upload failed.')
+      }
+
+      const data = await res.json()
+      onUploaded(data.signatureUrl)
+      toast.success('Signature uploaded successfully!')
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to upload signature.')
+      // Revert preview
+      setPreviewUrl(currentUrl || null)
+    } finally {
+      setUploading(false)
+      // Reset file input so same file can be re-selected if needed
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-6">
+      <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
+        <PenLine className="w-4 h-4 text-indigo-400" />
+        HR Signature
+      </h2>
+      <p className="text-xs text-slate-500 mb-5">
+        This signature will be overlaid on all future PDF exports when the &ldquo;Add HR
+        signature&rdquo; option is enabled.
+      </p>
+
+      {/* Warning banner */}
+      <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3 mb-5">
+        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+        <p className="text-xs text-amber-300">
+          Uploading a new signature will immediately replace the existing one for all
+          subsequent document exports.
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-6 items-start">
+        {/* Preview box */}
+        <div className="flex-shrink-0">
+          <p className="text-xs text-slate-400 mb-2">Current Signature</p>
+          <div
+            className="
+              w-56 h-28 rounded-lg border border-white/[0.08]
+              bg-white/[0.03] flex items-center justify-center overflow-hidden
+            "
+          >
+            {previewUrl && !imgError ? (
+              <div className="relative w-full h-full">
+                <Image
+                  src={previewUrl}
+                  alt="HR Signature"
+                  fill
+                  style={{ objectFit: 'contain' }}
+                  unoptimized
+                  onError={() => setImgError(true)}
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1 text-slate-600">
+                <ImageOff className="w-6 h-6" />
+                <span className="text-xs">No signature uploaded</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Upload controls */}
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-slate-400">
+            Accepted formats: <span className="text-slate-300">PNG, JPG</span>
+            <br />
+            Maximum size: <span className="text-slate-300">2 MB</span>
+          </p>
+
+          <input
+            ref={fileInputRef}
+            id="signature-file-input"
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <Button
+            id="btn-upload-signature"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="
+              border-white/[0.08] bg-white/[0.02] text-slate-200
+              hover:bg-white/[0.06] hover:text-white gap-2 w-fit
+            "
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Upload New Signature
+              </>
+            )}
+          </Button>
+
+          {previewUrl && !imgError && !uploading && (
+            <p className="flex items-center gap-1.5 text-xs text-emerald-400">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Signature is set
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      // Strip the data URL prefix: "data:image/png;base64,<actual_base64>"
+      resolve(result.split(',')[1])
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Partial<CompanySettings>>({})
   const [loading, setLoading] = useState(true)
@@ -71,7 +276,7 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       const res = await fetch('/api/settings', {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       })
@@ -82,6 +287,10 @@ export default function SettingsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleSignatureUploaded = (url: string) => {
+    setSettings((prev) => ({ ...prev, signatureStoragePath: url }))
   }
 
   return (
@@ -114,7 +323,7 @@ export default function SettingsPage() {
 
         {loading ? (
           <div className="flex flex-col gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="rounded-xl border border-white/[0.08] bg-[#13161e] p-6">
                 <Skeleton className="h-5 w-40 bg-white/[0.05] mb-4" />
                 <div className="grid grid-cols-2 gap-4">
@@ -127,7 +336,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {/* Company Info */}
+            {/* ── Company Information ─────────────────────────────────────────── */}
             <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-6">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-indigo-400" />
@@ -175,7 +384,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* HR Signatory */}
+            {/* ── HR Signatory ────────────────────────────────────────────────── */}
             <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-6">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <User className="w-4 h-4 text-indigo-400" />
@@ -199,7 +408,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Employee ID Config */}
+            {/* ── Employee ID Configuration ───────────────────────────────────── */}
             <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-6">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Hash className="w-4 h-4 text-indigo-400" />
@@ -229,9 +438,19 @@ export default function SettingsPage() {
                 />
               </div>
               <p className="text-slate-500 text-xs mt-3">
-                Employee IDs are generated as: <code className="text-indigo-400">{settings.employeeIdPrefix ?? 'AB'}-{settings.employeeIdYear ?? new Date().getFullYear()}-001</code>
+                Employee IDs are generated as:{' '}
+                <code className="text-indigo-400">
+                  {settings.employeeIdPrefix ?? 'AB'}-
+                  {settings.employeeIdYear ?? new Date().getFullYear()}-001
+                </code>
               </p>
             </div>
+
+            {/* ── HR Signature ────────────────────────────────────────────────── */}
+            <SignatureSection
+              currentUrl={settings.signatureStoragePath ?? ''}
+              onUploaded={handleSignatureUploaded}
+            />
           </div>
         )}
       </div>

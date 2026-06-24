@@ -822,20 +822,20 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 11.1 — Settings API (`pages/api/settings/index.ts`)
 
-- [ ] GET: fetch `/settings/company` document from Firestore via Admin SDK
-- [ ] PUT: update `/settings/company` via Admin SDK → write audit log: action=SETTINGS_UPDATE
+- [x] GET: fetch `/settings/company` document from Firestore via Admin SDK
+- [x] PUT: update `/settings/company` via Admin SDK → write audit log: action=SETTINGS_UPDATE
 
 ### 11.2 — Signature API (`pages/api/settings/signature.ts`)
 
-- [ ] POST: accept signature image upload (multipart or base64)
-- [ ] Validate: must be PNG or JPG, max 2MB
-- [ ] Upload to Cloudinary using `uploadBuffer()` with public ID `settings/signature`
-- [ ] Update `/settings/company` with `signatureCloudinaryUrl` (the returned Cloudinary URL)
-- [ ] Write audit log: action=SIGNATURE_UPDATE
+- [x] POST: accept signature image upload (multipart or base64)
+- [x] Validate: must be PNG or JPG, max 2MB
+- [x] Upload to Cloudinary using `uploadBuffer()` with public ID `settings/signature`
+- [x] Update `/settings/company` with `signatureCloudinaryUrl` (the returned Cloudinary URL)
+- [x] Write audit log: action=SIGNATURE_UPDATE
 
 ### 11.3 — Settings page (`pages/settings.tsx`)
 
-- [ ] Two sections:
+- [x] Two sections:
 
   **Company Information:**
   - Fields: Company Name, Company Address, Company CIN, Company Email, Company Phone
@@ -849,8 +849,8 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 11.4 — Initialize company settings
 
-- [ ] On first login, check if `/settings/company` exists in Firestore
-- [ ] If not: create it with empty defaults + `employeeIdPrefix: 'AB'`, `employeeIdCounter: 0`
+- [x] On first login, check if `/settings/company` exists in Firestore
+- [x] If not: create it with empty defaults + `employeeIdPrefix: 'AB'`, `employeeIdCounter: 0`
 
 ---
 

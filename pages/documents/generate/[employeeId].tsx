@@ -133,6 +133,9 @@ export default function GenerateDocPage() {
   const [versions, setVersions] = useState<DocumentVersion[]>([])
   const [loadingVersions, setLoadingVersions] = useState(false)
 
+  // Step 1 — Show all templates toggle (override status filter)
+  const [showAllTemplates, setShowAllTemplates] = useState(false)
+
   // ── Fetch employee ───────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -168,6 +171,15 @@ export default function GenerateDocPage() {
         (t) => t.isActive && t.applicableStatus.includes(employee.status)
       )
     : []
+
+  // All active templates (ignoring status filter)
+  const allActiveTemplates = templates.filter((t) => t.isActive)
+
+  // Templates to actually display (respects showAllTemplates toggle)
+  const displayedTemplates = showAllTemplates ? allActiveTemplates : filteredTemplates
+
+  // How many are hidden by the status filter
+  const hiddenCount = allActiveTemplates.length - filteredTemplates.length
 
   // ── Step 1 → 2: Select template → generate initial document ──────────────────
 
@@ -412,11 +424,44 @@ export default function GenerateDocPage() {
         {/* ── STEP 1: Select Template ── */}
         {step === 1 && (
           <div>
-            <h2 className="text-lg font-semibold text-white mb-1">Choose a Template</h2>
-            <p className="text-sm text-slate-500 mb-5">
-              Showing templates applicable for{' '}
-              <span className="text-slate-300">{STATUS_LABELS[employee.status]}</span> employees.
+            <div className="flex items-start justify-between mb-1">
+              <h2 className="text-lg font-semibold text-white">Choose a Template</h2>
+              {/* Show all toggle */}
+              <button
+                id="btn-toggle-all-templates"
+                onClick={() => setShowAllTemplates((v) => !v)}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  showAllTemplates
+                    ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-300'
+                    : 'bg-white/[0.04] border-white/[0.08] text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                {showAllTemplates ? 'Showing all' : 'Show all'}
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">
+              {showAllTemplates
+                ? `Showing all ${allActiveTemplates.length} active templates.`
+                : <>Showing templates for <span className="text-slate-300">{STATUS_LABELS[employee.status]}</span> employees.</>}
             </p>
+
+            {/* Banner: hidden templates notice */}
+            {!showAllTemplates && hiddenCount > 0 && (
+              <div className="flex items-center gap-2 rounded-lg bg-amber-500/[0.06] border border-amber-500/20 px-4 py-2.5 mb-5">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <p className="text-xs text-amber-300/80">
+                  <span className="font-medium text-amber-300">{hiddenCount} template{hiddenCount !== 1 ? 's' : ''} hidden</span>
+                  {' '}(not applicable for {STATUS_LABELS[employee.status]}).{' '}
+                  <button
+                    onClick={() => setShowAllTemplates(true)}
+                    className="underline text-amber-300 hover:text-amber-200 transition-colors"
+                  >
+                    Show all
+                  </button>
+                </p>
+              </div>
+            )}
 
             {loadingTemplates ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -424,7 +469,7 @@ export default function GenerateDocPage() {
                   <Skeleton key={i} className="h-32 bg-white/[0.04] rounded-xl" />
                 ))}
               </div>
-            ) : filteredTemplates.length === 0 ? (
+            ) : displayedTemplates.length === 0 ? (
               <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-8 text-center">
                 <FileText className="w-10 h-10 text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-400 font-medium">No templates available</p>
@@ -443,30 +488,42 @@ export default function GenerateDocPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {filteredTemplates.map((template) => (
-                  <button
-                    key={template.id}
-                    id={`btn-select-template-${template.id}`}
-                    onClick={() => handleSelectTemplate(template)}
-                    className="text-left rounded-xl border border-white/[0.08] bg-[#13161e] p-5 hover:border-indigo-500/40 hover:bg-indigo-600/5 transition-all group"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-white font-medium group-hover:text-indigo-300 transition-colors">
-                        {template.name}
-                      </span>
-                      <Badge variant="outline" className="text-xs text-slate-400 border-white/10 shrink-0">
-                        {DOCUMENT_TYPE_LABELS[template.type] ?? template.type}
-                      </Badge>
-                    </div>
-                    {template.description && (
-                      <p className="text-sm text-slate-500 line-clamp-2 mb-3">{template.description}</p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-slate-600">
-                      <span>{template.variables.length} variable{template.variables.length !== 1 ? 's' : ''}</span>
-                      <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-600 group-hover:text-indigo-400 transition-colors" />
-                    </div>
-                  </button>
-                ))}
+                {displayedTemplates.map((template) => {
+                  const isApplicable = template.applicableStatus.includes(employee.status)
+                  return (
+                    <button
+                      key={template.id}
+                      id={`btn-select-template-${template.id}`}
+                      onClick={() => handleSelectTemplate(template)}
+                      className={`text-left rounded-xl border p-5 transition-all group ${
+                        isApplicable
+                          ? 'border-white/[0.08] bg-[#13161e] hover:border-indigo-500/40 hover:bg-indigo-600/5'
+                          : 'border-white/[0.05] bg-[#0e1017] hover:border-white/[0.12] opacity-70'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-white font-medium group-hover:text-indigo-300 transition-colors">
+                          {template.name}
+                        </span>
+                        <Badge variant="outline" className="text-xs text-slate-400 border-white/10 shrink-0">
+                          {DOCUMENT_TYPE_LABELS[template.type] ?? template.type}
+                        </Badge>
+                      </div>
+                      {template.description && (
+                        <p className="text-sm text-slate-500 line-clamp-2 mb-3">{template.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 text-xs text-slate-600">
+                        <span>{template.variables.length} variable{template.variables.length !== 1 ? 's' : ''}</span>
+                        {!isApplicable && (
+                          <span className="text-amber-500/70 text-[10px]">
+                            For: {template.applicableStatus.join(', ')}
+                          </span>
+                        )}
+                        <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>

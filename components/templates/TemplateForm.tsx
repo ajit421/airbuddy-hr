@@ -350,23 +350,39 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
                   Used in Template
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {detectedVars.map((v) => (
-                    <span
-                      key={v}
-                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                        VARIABLE_REGISTRY[v]
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                      }`}
-                      title={
-                        VARIABLE_REGISTRY[v]
-                          ? `Source: ${VARIABLE_REGISTRY[v]}`
-                          : 'Unknown variable — not in registry'
-                      }
-                    >
-                      {v}
-                    </span>
-                  ))}
+                  {detectedVars.map((v) => {
+                    // A variable is "known" if it's in the registry OR uses a
+                    // direct path prefix (__settings.* / __computed.*) which
+                    // fill-variables.ts resolves natively.
+                    const isDirectSettings = v.startsWith('__settings.')
+                    const isDirectComputed = v.startsWith('__computed.')
+                    const isKnown = !!(VARIABLE_REGISTRY[v] || isDirectSettings || isDirectComputed)
+
+                    let tooltip: string
+                    if (VARIABLE_REGISTRY[v]) {
+                      tooltip = `Source: ${VARIABLE_REGISTRY[v]}`
+                    } else if (isDirectSettings) {
+                      tooltip = `Direct settings field: ${v.replace('__settings.', '')}`
+                    } else if (isDirectComputed) {
+                      tooltip = `Computed at runtime: ${v.replace('__computed.', '')}`
+                    } else {
+                      tooltip = 'Unknown variable — not in registry'
+                    }
+
+                    return (
+                      <span
+                        key={v}
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                          isKnown
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        }`}
+                        title={tooltip}
+                      >
+                        {v}
+                      </span>
+                    )
+                  })}
                 </div>
               </div>
             )}
