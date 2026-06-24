@@ -36,6 +36,9 @@ import {
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
 const MarkdownPreview = dynamic(() => import('@uiw/react-markdown-preview'), { ssr: false })
 
+// Phase 10 — AI Improve panel (imported normally; no SSR concern since it's inside a client component)
+import AIImprovePanel from '@/components/documents/AIImprovePanel'
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<EmployeeStatus, string> = {
@@ -135,6 +138,13 @@ export default function GenerateDocPage() {
 
   // Step 1 — Show all templates toggle (override status filter)
   const [showAllTemplates, setShowAllTemplates] = useState(false)
+
+  // Phase 10 — AI Improve panel state
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiImproved, setAiImproved] = useState<string | null>(null)
+  const [aiWarning, setAiWarning] = useState<string | null>(null)
+  const [aiImprovedApplied, setAiImprovedApplied] = useState(false)
 
   // ── Fetch employee ───────────────────────────────────────────────────────────
 
@@ -636,12 +646,35 @@ export default function GenerateDocPage() {
                   size="sm"
                   className="text-slate-400 hover:text-white gap-1.5 border border-white/[0.08]"
                   id="btn-ai-improve"
-                  onClick={() =>
-                    toast.success('Coming in Phase 10! ✨ AI Improve will be available soon.')
-                  }
+                  onClick={async () => {
+                    if (!selectedTemplate) return
+                    // Reset previous result
+                    setAiImproved(null)
+                    setAiWarning(null)
+                    setAiPanelOpen(true)
+                    setAiLoading(true)
+                    try {
+                      const res = await fetch('/api/documents/ai-improve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          markdownContent,
+                          documentType: selectedTemplate.type,
+                        }),
+                      })
+                      const data = await res.json()
+                      setAiImproved(data.improvedMarkdown ?? markdownContent)
+                      if (data.warning) setAiWarning(data.warning)
+                    } catch {
+                      setAiImproved(markdownContent)
+                      setAiWarning('Failed to connect to AI service. Original content shown.')
+                    } finally {
+                      setAiLoading(false)
+                    }
+                  }}
                 >
                   <Sparkles className="w-4 h-4 text-indigo-400" />
-                  AI Improve
+                  {aiImprovedApplied ? 'Re-Improve' : 'AI Improve'}
                 </Button>
                 <Button
                   className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
@@ -862,6 +895,27 @@ export default function GenerateDocPage() {
           </div>
         )}
       </div>
+
+      {/* ── Phase 10: AI Improve Panel overlay ── */}
+      {aiPanelOpen && (
+        <AIImprovePanel
+          original={markdownContent}
+          improved={aiImproved}
+          loading={aiLoading}
+          warning={aiWarning}
+          onAccept={(improved) => {
+            setMarkdownContent(improved)
+            setAiImprovedApplied(true)
+            setAiPanelOpen(false)
+            toast.success('AI improvements applied! Review the changes in the editor.')
+          }}
+          onReject={() => {
+            setAiPanelOpen(false)
+            toast('Original content kept.')
+          }}
+        />
+      )}
     </AppLayout>
   )
 }
+
