@@ -787,9 +787,9 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 10.1 — Gemini AI improve API (`pages/api/documents/ai-improve.ts`)
 
-- [ ] POST handler with `withAuth`
-- [ ] Accept: `{ markdownContent: string, documentType: string }`
-- [ ] Send to Gemini 2.5 Flash with this system prompt:
+- [x] POST handler with `withAuth`
+- [x] Accept: `{ markdownContent: string, documentType: string }`
+- [x] Send to Gemini 2.5 Flash with this system prompt:
   ```
   You are a professional HR document editor for AirBuddy Aerospace Pvt. Ltd., an aerospace startup in India.
 
@@ -804,17 +804,17 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
   Document type: {documentType}
   ```
-- [ ] Return: `{ improvedMarkdown: string }`
-- [ ] Write audit log: action=DOCUMENT_AI_IMPROVE
-- [ ] Wrap entire Gemini call in try/catch — if fails, return original content + error message
+- [x] Return: `{ improvedMarkdown: string }`
+- [x] Write audit log: action=DOCUMENT_AI_IMPROVE
+- [x] Wrap entire Gemini call in try/catch — if fails, return original content + error message
 
 ### 10.2 — AI Improve panel component (`components/documents/AIImprovePanel.tsx`)
 
-- [ ] Show side-by-side diff: original (left) vs improved (right)
-- [ ] Highlight additions in green, removals in red (simple line-by-line diff using `diff` npm package)
-- [ ] "Accept Improvements" button → replace editor content
-- [ ] "Reject / Keep Original" button → close panel, keep original
-- [ ] Loading state while Gemini processes
+- [x] Show side-by-side diff: original (left) vs improved (right)
+- [x] Highlight additions in green, removals in red (simple line-by-side diff using `diff` npm package)
+- [x] "Accept Improvements" button → replace editor content
+- [x] "Reject / Keep Original" button → close panel, keep original
+- [x] Loading state while Gemini processes
 
 ---
 
