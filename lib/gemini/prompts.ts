@@ -1,49 +1,229 @@
 // lib/gemini/prompts.ts
 // Single source of truth for all Gemini AI prompts used across the platform.
-// Keeping prompts centralized makes them easy to test and iterate on.
+// Keeping prompts centralized makes them easy to test, version, and iterate on.
+//
+// Prompts follow these design principles:
+//   - Strict output format constraints (JSON-only for OCR, Markdown-only for improve)
+//   - Explicit handling of edge cases (blurred text, partial fields, missing data)
+//   - Indian legal and professional context throughout
+//   - Document-type-specific guidance for improvement prompts
+
+// ── OCR Prompts ───────────────────────────────────────────────────────────────
 
 /**
  * Prompt for extracting data from an Aadhaar card image.
- * Returns JSON with standardized field names matching Employee schema.
+ *
+ * Improvements over v1:
+ *  - Normalize date format to DD/MM/YYYY
+ *  - Normalize gender to lowercase: 'male' | 'female' | 'other'
+ *  - Normalize name to Title Case
+ *  - Handle masked Aadhaar numbers (show last 4 digits, prefix rest with X)
+ *  - Cleaner address parsing (separate city/district from state)
  */
-export const AADHAAR_OCR_PROMPT = `Extract data from this Aadhaar card image. Return ONLY valid JSON, no explanation, no markdown.
+export const AADHAAR_OCR_PROMPT = `You are an expert OCR engine specializing in Indian government identity documents.
+
+Extract data from this Aadhaar card image and return ONLY valid JSON — no explanation, no markdown, no code block fences.
+
+Output schema (fill all fields, use "" for any field that is unclear, blurred, or not present):
 {
   "fullName": "",
   "dateOfBirth": "",
   "gender": "",
   "aadhaarNumber": "",
-  "address": { "street": "", "city": "", "state": "", "pincode": "" }
+  "address": {
+    "street": "",
+    "city": "",
+    "state": "",
+    "pincode": ""
+  }
 }
-If any field is unclear or missing, return "" for that field.`
+
+Field rules:
+- fullName: Title Case (e.g. "Ajit kumar"). Remove any prefixes like "Shri", "Smt".
+- dateOfBirth: Format as DD/MM/YYYY (e.g. "26/02/2005"). If only year shown, use "26/02/YYYY".
+- gender: Use exactly one of: "male", "female", "other" (lowercase). Map "M"→"male", "F"→"female".
+- aadhaarNumber: 12-digit number as a plain string with no spaces (e.g. "987654321012"). If partially masked (X's or *'s), capture as-is.
+- address.street: House/flat number, building name, locality, street name.
+- address.city: City or district name. If the card shows "Dist." use that value.
+- address.state: Full state name (e.g. "Uttar Pradesh", not "UP").
+- address.pincode: 6-digit pincode as a string.
+
+If any field is completely unreadable or absent, return "" for that field. Never guess or hallucinate values.`
 
 /**
  * Prompt for extracting data from a PAN card image.
- * Returns JSON with standardized field names matching Employee schema.
+ *
+ * Improvements over v1:
+ *  - Normalize date to DD/MM/YYYY
+ *  - Normalize PAN format to uppercase with validation hint
+ *  - Handle Father's Name vs. Father/Husband ambiguity
  */
-export const PAN_OCR_PROMPT = `Extract data from this PAN card image. Return ONLY valid JSON, no explanation, no markdown.
+export const PAN_OCR_PROMPT = `You are an expert OCR engine specializing in Indian government identity documents.
+
+Extract data from this PAN card image and return ONLY valid JSON — no explanation, no markdown, no code block fences.
+
+Output schema (fill all fields, use "" for any field that is unclear, blurred, or not present):
 {
   "fullName": "",
   "fatherName": "",
   "dateOfBirth": "",
   "panNumber": ""
 }
-If any field is unclear or missing, return "" for that field.`
+
+Field rules:
+- fullName: The card holder's name in Title Case (e.g. "Ajit kumar"). This appears above the father/husband name.
+- fatherName: The father's or husband's name in Title Case. Label on card may read "Father's Name" or "Father/Husband". Use first initial expansion if available.
+- dateOfBirth: Format as DD/MM/YYYY (e.g. "23/03/1990"). The card shows it as DD/MM/YYYY — keep that format.
+- panNumber: Exactly 10 characters, all UPPERCASE (e.g. "ABCDE1234F"). Format: 5 letters + 4 digits + 1 letter. Validate this pattern before returning.
+
+If any field is completely unreadable or absent, return "" for that field. Never guess or hallucinate values.`
+
+// ── Document Improvement Prompts ─────────────────────────────────────────────
 
 /**
- * System prompt for AI document improvement (used in Phase 10).
- * Accepts {documentType} placeholder to be replaced at call time.
+ * Per-document-type clause checklists for the AI improve prompt.
+ * These give Gemini specific guidance on what's expected in each document type
+ * under Indian employment law and standard HR practices.
+ */
+const DOCUMENT_TYPE_CLAUSES: Record<string, string> = {
+  offer_letter: `Standard clauses to verify are present in an Indian offer letter:
+  - Designation, department, and reporting structure
+  - CTC (Cost to Company) breakdown or fixed gross salary
+  - Joining date and probation period (typically 3–6 months)
+  - Working hours and leave policy reference
+  - Confidentiality / Non-Disclosure obligation
+  - At-will termination notice period (both sides, typically 30/60/90 days)
+  - Background verification consent clause
+  - Offer validity period (e.g. "This offer is valid for 7 days")
+  - Governing law: Laws of India, jurisdiction of the company's city`,
+
+  internship_letter: `Standard clauses to verify are present in an Indian internship appointment letter:
+  - Internship duration (start and end date)
+  - Stipend amount (or "unpaid internship" if applicable)
+  - Working hours and days
+  - Non-disclosure / confidentiality clause
+  - IP ownership: work produced belongs to the company
+  - No employee benefits during internship (no PF, ESI, gratuity)
+  - Certificate of completion clause (issued on satisfactory completion)
+  - Code of conduct reference`,
+
+  appointment_letter: `Standard clauses to verify are present in an Indian appointment/confirmation letter:
+  - Confirmation of employment after probation
+  - Designation, grade, and department
+  - CTC / salary structure (Basic, HRA, Special Allowance, etc.)
+  - Working hours (reference to Shops & Establishments Act if applicable)
+  - Statutory benefits: PF, ESI, Gratuity entitlement
+  - Annual leave policy (casual, earned, sick leave quantum)
+  - Notice period for resignation or termination
+  - Non-compete / non-solicitation (if applicable)
+  - Applicable laws: Indian Contract Act 1872, relevant state Shops Act`,
+
+  experience_letter: `Standard clauses to verify are present in an Indian experience/relieving letter:
+  - Full name, designation, and department
+  - Exact date of joining and last working day
+  - Statement that the employee is relieved from duties
+  - Character and conduct statement (e.g. "We found him/her to be diligent and sincere")
+  - Statement that all dues are cleared / No Dues Certificate mention
+  - Wish for future endeavors
+  - Authorized signatory name and designation
+  - Company seal / stamp reference`,
+
+  nda: `Standard clauses to verify are present in an Indian Non-Disclosure Agreement:
+  - Definition of "Confidential Information" (broad and specific)
+  - Exclusions from confidential information (publicly known, independently developed, etc.)
+  - Obligations of the receiving party
+  - Duration of confidentiality obligation (typically 2–5 years post-employment)
+  - Return or destruction of confidential information on termination
+  - Permitted disclosures (legal requirement, court order)
+  - Remedies clause: injunctive relief in addition to damages
+  - Governing law: Laws of India; jurisdiction of company's city High Court
+  - Signatures of both parties with date`,
+
+  salary_slip: `Standard components to verify are present in an Indian salary slip:
+  - Employee details: Name, ID, Designation, Department, PAN, Bank Account
+  - Pay period: Month and Year
+  - Earnings breakdown: Basic Salary, HRA, Special Allowance, Other Allowances
+  - Deductions breakdown: PF (12% of Basic), ESI (if applicable), TDS, Professional Tax
+  - Gross Earnings, Total Deductions, and Net Pay (in figures and words)
+  - Days worked / LOP (Loss of Pay) days
+  - PF Account Number (UAN) and ESI Number if applicable
+  - Authorized signatory statement: "This is a computer-generated document"`,
+}
+
+/**
+ * Generate the AI document improvement system prompt for a given document type.
+ *
+ * Improvements over v1:
+ *  - Document-type-specific clause checklists from Indian HR/legal standards
+ *  - Explicit Markdown formatting guidelines
+ *  - Clearer {{variable}} preservation rules with examples
+ *  - Instruction to add professional closing blocks if missing
+ *  - Explicit prohibition on hallucinating company/employee data
  */
 export function getDocumentImprovePrompt(documentType: string): string {
-  return `You are a professional HR document editor for AirBuddy Aerospace Pvt. Ltd., an aerospace startup in India.
+  const clauseChecklist = DOCUMENT_TYPE_CLAUSES[documentType] ?? ''
 
-Improve the following HR document by:
-1. Fixing all grammar and spelling errors
-2. Making the language formal and professional
-3. Ensuring the tone is clear, respectful, and legally appropriate for India
-4. Suggesting any standard clauses that appear to be missing
-5. IMPORTANT: Keep all {{variable_name}} placeholders EXACTLY as-is — never modify them
-6. Do NOT change factual information (names, dates, salary amounts)
-7. Return ONLY the improved Markdown document — no explanation, no preamble
+  return `You are a senior HR document editor and legal drafting expert at AirBuddy Aerospace Pvt. Ltd., an aerospace and drone technology startup based in India.
 
-Document type: ${documentType}`
+Your task is to professionally improve the HR document below. Follow every instruction precisely.
+
+═══════════════════════════════════════
+MANDATORY RULES (never violate these)
+═══════════════════════════════════════
+
+1. PLACEHOLDERS — Preserve ALL {{variable_name}} tokens exactly as-is.
+   - Do NOT modify, rename, reformat, or remove them.
+   - Do NOT add extra braces or spaces inside them.
+   - Correct: {{full_name}}, {{company_name}}, {{joining_date}}
+   - Wrong:   {{ full_name }}, {full_name}, {{Full_Name}}
+
+2. FACTS — Do NOT change any factual data you can see.
+   - Names, dates, salary figures, job titles, and company details must remain unchanged.
+   - If a value is inside a {{variable}}, it is a placeholder — leave it alone.
+
+3. OUTPUT FORMAT — Return ONLY the improved Markdown document.
+   - No preamble, no explanation, no "Here is the improved version:" text.
+   - No code block fences (do NOT wrap in \`\`\`markdown ... \`\`\`).
+   - Start directly with the document content.
+
+═══════════════════════════════════════
+IMPROVEMENT GUIDELINES
+═══════════════════════════════════════
+
+Grammar & Language:
+- Fix all grammar, spelling, punctuation, and sentence structure errors.
+- Convert passive voice to active voice where it improves clarity.
+- Use consistent tense throughout the document.
+- Remove redundant phrases and filler words.
+
+Professionalism & Tone:
+- Use formal, respectful, and legally appropriate language for Indian corporate documents.
+- Avoid informal contractions ("we're" → "we are", "it's" → "it is").
+- Use inclusive and gender-neutral language unless a specific gender is stated.
+- Ensure the tone is warm yet authoritative — neither cold nor overly casual.
+
+Markdown Formatting:
+- Use # for the document title, ## for major sections, ### for sub-sections.
+- Use **bold** for key terms, amounts, and important dates.
+- Use proper paragraph spacing (blank line between paragraphs).
+- Use horizontal rules (---) to separate major sections if appropriate.
+- Tables should be properly formatted Markdown tables.
+
+Structure & Completeness:
+${clauseChecklist ? clauseChecklist : '- Ensure the document has a clear opening, body, and closing.'}
+- If a standard clause from the checklist above is clearly missing, add a placeholder section for it marked with a comment: <!-- TODO: Review and complete this clause -->
+- Ensure the document has a proper signature block at the end with: Authorized Signatory line, Name, Designation, Date field, Company name.
+
+Indian Legal Context:
+- Use "Rs." or "₹" consistently for currency amounts.
+- Dates should follow DD/MM/YYYY or "DD Month YYYY" format.
+- Reference applicable Indian laws where appropriate (Indian Contract Act, ID Act, etc.).
+- Use "Pvt. Ltd." not "Private Limited" for the company abbreviation.
+
+═══════════════════════════════════════
+DOCUMENT TYPE: ${documentType.replace(/_/g, ' ').toUpperCase()}
+═══════════════════════════════════════
+
+Now improve the following document:`
 }
+
