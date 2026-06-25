@@ -917,7 +917,7 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 15.1 — Firestore composite indexes
 
-- [ ] Go to Firebase Console → Firestore → Indexes → Add these composite indexes:
+- [x] Go to Firebase Console → Firestore → Indexes → Add these composite indexes:
   - Collection: `employees` | Fields: `isDeleted ASC, createdAt DESC`
   - Collection: `employees` | Fields: `isDeleted ASC, status ASC, createdAt DESC`
   - Collection: `audit_logs` | Fields: `action ASC, timestamp DESC`
@@ -926,21 +926,21 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 15.2 — Error handling
 
-- [ ] All API routes: wrap handlers in try/catch → return `{ error: string }` with appropriate status code
-- [ ] All pages: show error toast on API failure using shadcn `useToast`
-- [ ] Gemini API calls: if rate limited (429) → show "AI service is busy, try again in a moment"
-- [ ] File upload: if > 10MB → show "File too large. Maximum size is 10MB"
-- [ ] OCR failure: show "OCR could not extract data. Please enter manually." — never block the workflow
+- [x] All API routes: wrap handlers in try/catch → return `{ error: string }` with appropriate status code
+- [x] All pages: show error toast on API failure using shadcn `useToast`
+- [x] Gemini API calls: if rate limited (429) → show "AI service is busy, try again in a moment"
+- [x] File upload: if > 10MB → show "File too large. Maximum size is 10MB"
+- [x] OCR failure: show "OCR could not extract data. Please enter manually." — never block the workflow
 
 ### 15.3 — Loading states
 
-- [ ] All data-fetching pages: show skeleton loader (shadcn Skeleton component) while loading
-- [ ] All form submit buttons: show spinner + "Saving..." disabled state while submitting
-- [ ] Export buttons: show "Generating PDF..." disabled state during export
+- [x] All data-fetching pages: show skeleton loader (shadcn Skeleton component) while loading
+- [x] All form submit buttons: show spinner + "Saving..." disabled state while submitting
+- [x] Export buttons: show "Generating PDF..." disabled state during export
 
 ### 15.4 — Google OAuth domain restriction
 
-- [ ] In `hooks/useAuth.ts` after `signInWithPopup`:
+- [x] In `hooks/useAuth.ts` after `signInWithPopup`:
   ```typescript
   const email = result.user.email ?? ''
   const allowedDomain = process.env.NEXT_PUBLIC_ALLOWED_DOMAIN ?? 'airbuddy.in'
@@ -952,14 +952,14 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 15.5 — Session expiry handling
 
-- [ ] In `_app.tsx`: listen for Firebase auth state → if user is null but was logged in, redirect to `/login`
-- [ ] All API routes: on 401 response → client-side `router.push('/login')`
+- [x] In `_app.tsx`: listen for Firebase auth state → if user is null but was logged in, redirect to `/login`
+- [x] All API routes: on 401 response → client-side `router.push('/login')`
 
 ### 15.6 — File naming convention
 
-- [ ] All exported files follow: `{employeeId}_{DocumentType}_{YYYYMMDD}.{ext}`
-- [ ] Example: `AB-2024-001_OfferLetter_20240815.pdf`
-- [ ] Create helper function in `lib/export/file-naming.ts`:
+- [x] All exported files follow: `{employeeId}_{DocumentType}_{YYYYMMDD}.{ext}`
+- [x] Example: `AB-2024-001_OfferLetter_20240815.pdf`
+- [x] Create helper function in `lib/export/file-naming.ts`:
   ```typescript
   import { format } from 'date-fns'
 
@@ -983,34 +983,34 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 16.1 — Seed default templates
 
-- [ ] Create a one-time seed script or API route `/api/admin/seed` (DELETE after use)
-- [ ] Seed 6 default templates to Firestore:
+- [x] Create a one-time seed script or API route `/api/admin/seed` (DELETE after use)
+- [x] Seed 6 default templates to Firestore:
   1. Offer Letter
   2. Internship Letter
   3. NDA Agreement
   4. Salary Slip
   5. Experience Letter
   6. Appointment Letter
-- [ ] Each template must have complete Markdown content with all correct `{{variables}}`
+- [x] Each template must have complete Markdown content with all correct `{{variables}}`
 
 ### 16.2 — Create Super Admin user
 
-- [ ] In Firebase Console → Firestore → Create document manually:
+- [x] In Firebase Console → Firestore → Create document manually:
   - Collection: `users`
   - Document ID: `{your Firebase Auth UID}`
   - Fields: `{ email: "ajit@airbuddy.in", displayName: "Ajit", role: "super_admin", isActive: true, createdAt: now }`
 
 ### 16.3 — Production environment setup
 
-- [ ] All env vars added to Vercel dashboard (Production environment)
-- [ ] Verify: `FIREBASE_ADMIN_PRIVATE_KEY` in Vercel has actual newlines (not `\n` string)
+- [x] All env vars added to Vercel dashboard (Production environment)
+- [x] Verify: `FIREBASE_ADMIN_PRIVATE_KEY` in Vercel has actual newlines (not `\n` string)
   - In Vercel dashboard, paste the private key as-is from the JSON file (with real line breaks)
-- [ ] Set `NEXT_PUBLIC_APP_URL` to production Vercel URL
-- [ ] Set `ALLOWED_EMAIL_DOMAIN` to `airbuddy.in`
+- [x] Set `NEXT_PUBLIC_APP_URL` to production Vercel URL
+- [x] Set `ALLOWED_EMAIL_DOMAIN` to `airbuddy.in`
 
 ### 16.4 — Final production checks
 
-- [ ] Test full workflow end-to-end:
+- [x] Test full workflow end-to-end:
   1. Login with Google → dashboard loads ✓
   2. Add employee → saved with auto ID ✓
   3. Upload Aadhaar → OCR extracts → review → save to profile ✓
@@ -1019,15 +1019,15 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
   6. Signature overlay appears on PDF ✓
   7. Version history shows new version ✓
   8. Audit log shows all actions ✓
-- [ ] Test unauthorized access: open incognito → go to `/dashboard` → should redirect to `/login`
-- [ ] Test with non-airbuddy.in email → should show access denied
-- [ ] Verify Cloudinary signed URLs expire correctly (try an expired URL — should return 401)
-- [ ] Set up Firebase billing alert: Console → Usage and billing → Set alert at ₹100/month
-- [ ] Monitor Cloudinary usage: Dashboard → Usage (free tier: 25 GB — sufficient for internal HR tool)
+- [x] Test unauthorized access: open incognito → go to `/dashboard` → should redirect to `/login`
+- [x] Test with non-airbuddy.in email → should show access denied
+- [x] Verify Cloudinary signed URLs expire correctly (try an expired URL — should return 401)
+- [x] Set up Firebase billing alert: Console → Usage and billing → Set alert at ₹100/month
+- [x] Monitor Cloudinary usage: Dashboard → Usage (free tier: 25 GB — sufficient for internal HR tool)
 
 ### 16.5 — Documentation
 
-- [ ] Update `README.md` with:
+- [x] Update `README.md` with:
   - Project overview
   - Local setup instructions
   - Environment variable descriptions
