@@ -48,7 +48,8 @@ export function useAuth(): AuthState {
         throw new Error(`Access restricted to @${ALLOWED_DOMAIN} accounts only.`)
       }
 
-      // Exchange Firebase idToken for a server-side session cookie
+      // Exchange Firebase idToken for a server-side session cookie.
+      // The server will verify the UID exists in the `users` Firestore collection.
       const idToken = await result.user.getIdToken()
       const sessionRes = await fetch('/api/auth/session', {
         method: 'POST',
@@ -57,7 +58,14 @@ export function useAuth(): AuthState {
       })
 
       if (!sessionRes.ok) {
-        throw new Error('Failed to create session. Please try again.')
+        // Always sign out of Firebase client-side on failure
+        await firebaseSignOut(auth)
+
+        // Surface the server's specific error message (e.g. "Access denied…")
+        const body = await sessionRes.json().catch(() => ({}))
+        throw new Error(
+          body.error ?? 'Sign-in failed. Please contact your administrator.'
+        )
       }
 
       router.replace('/dashboard')
