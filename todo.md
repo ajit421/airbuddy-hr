@@ -884,15 +884,15 @@ This is the main multi-step workflow page. Implement as 4 steps in a single page
 
 ### 13.1 — Dashboard page (`pages/dashboard.tsx`)
 
-- [ ] Stats row (4 cards):
+- [x] Stats row (4 cards):
   - Total employees (not deleted)
   - Full-time count
   - Intern count
   - Total documents generated (all time)
-- [ ] Employee status breakdown: horizontal bar chart (CSS-only, no chart library needed)
-- [ ] Recent employees table: last 5 added (name, department, status)
-- [ ] Recent activity list: last 10 audit log entries with colored dot indicator
-- [ ] Quick action buttons: Add Employee, Generate Document, New Template, View Audit Log
+- [x] Employee status breakdown: horizontal bar chart (CSS-only, no chart library needed)
+- [x] Recent employees table: last 5 added (name, department, status)
+- [x] Recent activity list: last 10 audit log entries with colored dot indicator
+- [x] Quick action buttons: Add Employee, Generate Document, New Template, View Audit Log
 
 ---
 
