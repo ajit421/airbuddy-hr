@@ -17,6 +17,7 @@ import { adminDb } from '@/lib/firebase/admin'
 import { createAuditLog } from '@/lib/audit/logger'
 import { downloadBuffer, uploadBuffer } from '@/lib/cloudinary/storage-helpers'
 import { HRPdfDocument } from '@/lib/export/pdf-renderer'
+import { generateFileName } from '@/lib/export/file-naming'
 import { format } from 'date-fns'
 import React from 'react'
 import type { DocumentProps } from '@react-pdf/renderer'
@@ -189,11 +190,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       // ── 8. Stream PDF to client ──────────────────────────────────────────
-      const safeTitle = documentTitle
-        .replace(/[^a-zA-Z0-9_\- ]/g, '')
-        .trim()
-        .replace(/\s+/g, '_')
-      const filename = `${employeeId}_${safeTitle}_${format(new Date(), 'ddMMyyyy')}.pdf`
+      const filename = generateFileName(employeeId, documentTitle, 'pdf')
 
       res.setHeader('Content-Type', 'application/pdf')
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)

@@ -8,6 +8,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { withAuth } from '@/lib/api-middleware'
 import { adminDb } from '@/lib/firebase/admin'
 import { createAuditLog } from '@/lib/audit/logger'
+import { generateFileName } from '@/lib/export/file-naming'
 import { format } from 'date-fns'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -68,8 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       // ── 4. Stream .md file to client ─────────────────────────────────
-      const safeTitle = documentTitle.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_')
-      const filename = `${employeeId}_${safeTitle}_${format(new Date(), 'ddMMyyyy')}.md`
+      const filename = generateFileName(employeeId, documentTitle, 'md')
 
       res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
