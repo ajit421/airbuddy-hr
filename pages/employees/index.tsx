@@ -8,6 +8,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import {
   Select,
   SelectContent,
@@ -65,12 +66,28 @@ export default function EmployeesListPage() {
   const [statusFilter, setStatusFilter] = useState('all')
 
   useEffect(() => {
-    fetch('/api/employees')
-      .then((r) => r.json())
-      .then((data) => setEmployees(data.employees ?? []))
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
+    const load = async () => {
+      try {
+        const res = await fetch('/api/employees')
+        if (res.status === 401) {
+          router.replace('/login')
+          return
+        }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          toast.error(data.error ?? 'Failed to load employees.')
+          return
+        }
+        const data = await res.json()
+        setEmployees(data.employees ?? [])
+      } catch {
+        toast.error('Network error — could not load employees.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [router])
 
   // Client-side filter
   const filtered = employees.filter((emp) => {
