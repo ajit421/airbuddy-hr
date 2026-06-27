@@ -34,11 +34,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'PATCH') {
     return await withAuth(req, res, async (uid, email) => {
       try {
-        const updates = { ...req.body }
+        // Whitelist only updateable template fields — prevents mass assignment
+        const {
+          name,
+          type,
+          description,
+          markdownContent,
+          variables,
+          applicableStatus,
+          isActive,
+          isDefault,
+        } = req.body as Partial<Template>
+
+        const updates: Record<string, unknown> = {}
+        if (name !== undefined) updates.name = name
+        if (type !== undefined) updates.type = type
+        if (description !== undefined) updates.description = description
+        if (isActive !== undefined) updates.isActive = isActive
+        if (isDefault !== undefined) updates.isDefault = isDefault
+        if (applicableStatus !== undefined) updates.applicableStatus = applicableStatus
+        if (variables !== undefined) updates.variables = variables
 
         // Re-extract variables if content changed
-        if (updates.markdownContent) {
-          updates.variables = extractVariables(updates.markdownContent)
+        if (markdownContent !== undefined) {
+          updates.markdownContent = markdownContent
+          updates.variables = extractVariables(markdownContent)
         }
 
         updates.updatedAt = new Date().toISOString()
@@ -52,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           entityId: id,
           performedBy: uid,
           performedByEmail: email,
-          metadata: { fields: Object.keys(req.body) },
+          metadata: { fields: Object.keys(updates).filter((k) => k !== 'updatedAt' && k !== 'updatedBy') },
         })
 
         res.status(200).json({ success: true })

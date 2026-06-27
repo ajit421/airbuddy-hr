@@ -11,7 +11,7 @@ import type { Template } from '@/types/template'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
-    return await withAuth(req, res, async (uid, email) => {
+    return await withAuth(req, res, async () => {
       try {
         const snapshot = await adminDb.collection('templates').orderBy('createdAt', 'desc').get()
         const templates: Template[] = snapshot.docs.map((doc) => ({
