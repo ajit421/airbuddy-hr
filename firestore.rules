@@ -1,9 +1,117 @@
 rules_version = '2';
+
+// ════════════════════════════════════════════════════════════════════════════════
+// AirBuddy HR — Firestore Security Rules
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// ARCHITECTURE OVERVIEW:
+// ─────────────────────
+// This application uses a server-side-only data access pattern:
+//
+//   Client (Browser)  →  Next.js API Routes  →  Firebase Admin SDK  →  Firestore
+//
+// The Firebase Admin SDK bypasses ALL security rules. Therefore, these rules
+// exist solely to block any direct client-side access via the Firebase JS SDK.
+//
+// The client-side Firebase SDK is used ONLY for Google Auth sign-in
+// (firebase/auth). It does NOT perform any Firestore reads or writes.
+// All data operations flow through authenticated API routes at /api/*.
+//
+// COLLECTIONS IN THIS DATABASE:
+// ─────────────────────────────
+//  Top-level:
+//   • users/{uid}                        — HR user whitelist (auth gate)
+//   • employees/{empId}                  — Employee master records
+//   • templates/{tplId}                  — Document templates (markdown)
+//   • settings/company                   — Company configuration & ID counter
+//   • audit_logs/{logId}                 — Append-only audit trail
+//
+//  Subcollections (nested under employees):
+//   • employees/{empId}/files/{fileId}               — Uploaded file metadata
+//   • employees/{empId}/documents/{docId}             — Generated document records
+//   • employees/{empId}/documents/{docId}/versions/{vId} — Document version history
+//
+// WHY "allow read, write: if false"?
+// ───────────────────────────────────
+// Since no client-side code reads or writes Firestore directly, locking down
+// all collections to "if false" is the most secure configuration. This ensures:
+//
+//   1. Even if Firebase client credentials (API key, project ID) are exposed
+//      (they are public by design), no one can read or write any data.
+//   2. A compromised or malicious browser cannot bypass the API layer.
+//   3. All access control is enforced by the withAuth() middleware in
+//      lib/api-middleware.ts (session cookie + Firestore users whitelist).
+//
+// If in the future you add client-side Firestore reads (e.g., real-time
+// listeners), you must open specific paths with proper auth checks.
+// ════════════════════════════════════════════════════════════════════════════════
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Lock down all client-side direct access.
-    // All read/write operations must go through Next.js API routes (Admin SDK).
+
+    // ── Global default: deny everything ───────────────────────────────────────
+    // The Admin SDK (used by all API routes) is NOT affected by this rule.
+    // Only direct client-side SDK calls are blocked.
     match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // Per-collection documentation (rules are inherited from the global deny)
+    // ════════════════════════════════════════════════════════════════════════════
+
+    // ── users/{uid} ──────────────────────────────────────────────────────────
+    // Contains HR user accounts with role and isActive flag.
+    // Written manually by admin in Firebase Console or via Admin SDK.
+    // Read by: withAuth() middleware, /api/auth/session
+    match /users/{uid} {
+      allow read, write: if false;
+    }
+
+    // ── employees/{empId} ────────────────────────────────────────────────────
+    // Employee master records (CRUD via /api/employees/*).
+    // Supports soft delete (isDeleted flag).
+    match /employees/{empId} {
+      allow read, write: if false;
+
+      // Employee uploaded files (Aadhaar, PAN, resume, photo)
+      // Managed via /api/employees/[id]/files
+      match /files/{fileId} {
+        allow read, write: if false;
+      }
+
+      // Generated HR documents (offer letters, etc.)
+      // Managed via /api/documents/generate, /api/employees/[id]/documents
+      match /documents/{docId} {
+        allow read, write: if false;
+
+        // Document version history (v1, v2, ...)
+        // Managed via /api/documents/[docId]/versions
+        match /versions/{versionId} {
+          allow read, write: if false;
+        }
+      }
+    }
+
+    // ── templates/{tplId} ────────────────────────────────────────────────────
+    // Markdown document templates (offer letter, appointment, etc.)
+    // Managed via /api/templates/*
+    match /templates/{tplId} {
+      allow read, write: if false;
+    }
+
+    // ── settings/company ─────────────────────────────────────────────────────
+    // Single document containing company config, HR signature, and
+    // employee ID counter (prefix, year, counter).
+    // Managed via /api/settings/*, auto-initialized on first login.
+    match /settings/{settingId} {
+      allow read, write: if false;
+    }
+
+    // ── audit_logs/{logId} ────────────────────────────────────────────────────
+    // Append-only audit trail. Written by lib/audit/logger.ts (Admin SDK).
+    // Read via /api/audit (with pagination and filters).
+    match /audit_logs/{logId} {
       allow read, write: if false;
     }
   }
