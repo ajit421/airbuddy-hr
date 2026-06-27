@@ -21,16 +21,16 @@ interface UploadedFile {
   cloudinaryUrl: string
   publicId: string
   ocrStatus: 'pending' | 'completed' | 'failed' | 'skipped'
-  ocrData?: Record<string, any>
+  ocrData?: Record<string, unknown>
   signedUrl?: string | null
-  uploadedAt?: any
+  uploadedAt?: unknown
 }
 
 interface FileUploadZoneProps {
   employeeId: string
   files: UploadedFile[]
   onFilesChange: () => void
-  onOcrComplete: (fileId: string, fileType: FileType, data: Record<string, any>) => void
+  onOcrComplete: (fileId: string, fileType: FileType, data: Record<string, unknown>) => void
 }
 
 // ── Status badges ──────────────────────────────────────────────────────────
@@ -106,8 +106,9 @@ export default function FileUploadZone({
 
         toast.success(`${FILE_TYPE_LABELS[selectedType]} uploaded successfully!`)
         onFilesChange() // Refresh the files list
-      } catch (err: any) {
-        toast.error(err.message ?? 'File upload failed. Please try again.')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'File upload failed. Please try again.'
+        toast.error(msg)
       } finally {
         setUploading(false)
       }
@@ -163,7 +164,7 @@ export default function FileUploadZone({
         toast.error(data.error ?? 'OCR could not extract data. Please enter manually.')
         onFilesChange()
       }
-    } catch (err: any) {
+    } catch {
       toast.error('OCR extraction failed. Please enter data manually.')
     } finally {
       setOcrLoading(null)
@@ -184,8 +185,9 @@ export default function FileUploadZone({
       if (!res.ok) throw new Error((await res.json()).error)
       toast.success('File deleted')
       onFilesChange()
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to delete file')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete file'
+      toast.error(msg)
     } finally {
       setDeletingId(null)
     }

@@ -16,7 +16,20 @@ interface OCRReviewFormProps {
   employeeId: string
   fileId: string
   fileType: FileType
-  ocrData: Record<string, any>
+  ocrData: {
+    fullName?: string
+    dateOfBirth?: string
+    gender?: string
+    aadhaarNumber?: string
+    fatherName?: string
+    panNumber?: string
+    address?: {
+      street?: string
+      city?: string
+      state?: string
+      pincode?: string
+    }
+  }
   onSaved: () => void
   onDismiss: () => void
 }
@@ -26,9 +39,38 @@ interface OCRReviewFormProps {
 const inputCls =
   'bg-[#0a0c10] border-white/[0.08] text-slate-100 placeholder:text-slate-600 focus-visible:ring-indigo-500/50 h-9 text-sm'
 
+// ── Sub-component ──────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+}) {
+  const isEmpty = !value || value.trim() === ''
+  return (
+    <div>
+      <Label className="text-slate-400 text-[12px] mb-1 block">{label}</Label>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`${inputCls} ${isEmpty ? 'border-amber-500/40 bg-amber-500/5' : ''}`}
+      />
+      {isEmpty && (
+        <p className="text-amber-400 text-[10px] mt-0.5">Not detected — please enter manually</p>
+      )}
+    </div>
+  )
+}
+
 export default function OCRReviewForm({
   employeeId,
-  fileId,
   fileType,
   ocrData,
   onSaved,
@@ -60,7 +102,7 @@ export default function OCRReviewForm({
     setSaving(true)
     try {
       // Build the update payload based on file type
-      const payload: Record<string, any> = {}
+      const payload: Record<string, unknown> = {}
 
       if (isAadhaar) {
         if (fullName) payload.fullName = fullName
@@ -97,42 +139,15 @@ export default function OCRReviewForm({
 
       toast.success('OCR data saved to employee profile!')
       onSaved()
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to save OCR data')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save OCR data'
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
   }
 
-  // ── Render helpers ─────────────────────────────────────────────────────
 
-  function Field({
-    label,
-    value,
-    onChange,
-    placeholder,
-  }: {
-    label: string
-    value: string
-    onChange: (v: string) => void
-    placeholder?: string
-  }) {
-    const isEmpty = !value || value.trim() === ''
-    return (
-      <div>
-        <Label className="text-slate-400 text-[12px] mb-1 block">{label}</Label>
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={`${inputCls} ${isEmpty ? 'border-amber-500/40 bg-amber-500/5' : ''}`}
-        />
-        {isEmpty && (
-          <p className="text-amber-400 text-[10px] mt-0.5">Not detected — please enter manually</p>
-        )}
-      </div>
-    )
-  }
 
   return (
     <div className="rounded-xl border border-indigo-500/20 bg-[#13161e] p-5">
