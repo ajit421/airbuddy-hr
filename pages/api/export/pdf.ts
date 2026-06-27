@@ -193,7 +193,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const filename = generateFileName(employeeId, documentTitle, 'pdf')
 
       res.setHeader('Content-Type', 'application/pdf')
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
       res.setHeader('Content-Length', pdfBuffer.length)
       res.status(200).end(pdfBuffer)
     } catch (err) {

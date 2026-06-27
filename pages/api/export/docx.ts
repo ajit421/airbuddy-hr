@@ -38,7 +38,6 @@ interface ParsedRun {
 
 function parseInlineRuns(line: string): ParsedRun[] {
   const runs: ParsedRun[] = []
-  // eslint-disable-next-line no-useless-escape
   const regex = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g
   let lastIndex = 0
   let match: RegExpExecArray | null
@@ -96,7 +95,7 @@ function markdownToDocxParagraphs(markdown: string, companyName: string, documen
     new Paragraph({
       children: [
         new TextRun({
-          text: 'AirBuddy Aerospace Pvt. Ltd. — HR Document Platform',
+          text: `${companyName} — HR Document Platform`,
           size: 16,
           font: 'Calibri',
           color: '64748b',
@@ -304,7 +303,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       )
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
       res.setHeader('Content-Length', docxBuffer.length)
       res.status(200).end(docxBuffer)
     } catch (err) {

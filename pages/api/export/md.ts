@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const filename = generateFileName(employeeId, documentTitle, 'md')
 
       res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
       res.setHeader('Content-Length', mdBuffer.length)
       res.status(200).end(mdBuffer)
     } catch (err) {
