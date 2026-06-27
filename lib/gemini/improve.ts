@@ -28,8 +28,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 /** Returns true if the error is a 503 / overload / quota error from Gemini. */
-function isOverloadError(err: any): boolean {
-  const msg = (err?.message ?? '').toLowerCase()
+function isOverloadError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
   return (
     msg.includes('503') ||
     msg.includes('service unavailable') ||
@@ -62,7 +62,7 @@ export async function improveDocument(
     { model: geminiFallbackModel, modelName: 'gemini-1.5-flash', delayMs: 3000 },
   ]
 
-  let lastError: any = null
+  let lastError: unknown = null
 
   for (const { model, modelName, delayMs } of attempts) {
     if (delayMs > 0) {
@@ -87,9 +87,9 @@ export async function improveDocument(
       console.log(`[AI Improve] Success with ${modelName}`)
       return { success: true, improvedMarkdown: improved, modelUsed: modelName }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       lastError = err
-      const msg = err?.message ?? String(err)
+      const msg = err instanceof Error ? err.message : String(err)
       console.warn(`[AI Improve] ${modelName} failed: ${msg}`)
 
       // Only retry on overload errors — propagate other errors immediately
@@ -101,11 +101,12 @@ export async function improveDocument(
   }
 
   // All attempts failed
-  console.error('[AI Improve] All attempts failed:', lastError?.message ?? lastError)
+  const finalMsg = lastError instanceof Error ? lastError.message : String(lastError)
+  console.error('[AI Improve] All attempts failed:', finalMsg)
   return {
     success: false,
     improvedMarkdown: markdownContent, // Return original on failure
-    error: lastError?.message ?? 'AI improvement failed after all retries',
+    error: finalMsg,
   }
 }
 

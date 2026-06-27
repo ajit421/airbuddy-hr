@@ -7,7 +7,7 @@ import { AADHAAR_OCR_PROMPT, PAN_OCR_PROMPT } from './prompts'
 
 interface OcrResult {
   success: boolean
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   rawText?: string
   error?: string
 }
@@ -50,11 +50,12 @@ async function extractWithPrompt(
       // JSON parse failed — return raw text so HR can enter manually
       return { success: false, rawText: responseText, error: 'Could not parse OCR response as JSON' }
     }
-  } catch (err: any) {
-    console.error('[OCR] Gemini extraction failed:', err?.message ?? err)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[OCR] Gemini extraction failed:', msg)
     return {
       success: false,
-      error: err?.message ?? 'OCR extraction failed',
+      error: msg,
     }
   }
 }
