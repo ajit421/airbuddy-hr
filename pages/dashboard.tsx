@@ -49,8 +49,8 @@ interface RecentActivity {
   entityType:       string
   entityId:         string
   performedByEmail: string
-  timestamp:        any
-  metadata:         any
+  timestamp:        unknown
+  metadata:         unknown
 }
 
 interface DashboardData {
@@ -61,15 +61,19 @@ interface DashboardData {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function formatTimestamp(ts: any): string {
+
+function formatTimestamp(ts: unknown): string {
   if (!ts) return '—'
   try {
+    const t = ts as { toDate?: () => Date; _seconds?: number; seconds?: number }
     const date =
-      ts?.toDate
-        ? ts.toDate()
-        : ts._seconds
-        ? new Date(ts._seconds * 1000)
-        : new Date(ts)
+      typeof t === 'object' && t.toDate
+        ? t.toDate()
+        : typeof t === 'object' && t._seconds
+        ? new Date(t._seconds * 1000)
+        : typeof t === 'object' && t.seconds
+        ? new Date(t.seconds * 1000)
+        : new Date(ts as string | number)
     return date.toLocaleString('en-IN', {
       day:    '2-digit',
       month:  'short',
@@ -305,15 +309,20 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(await res.text())
       const json = await res.json()
       setData(json)
-    } catch (err: any) {
-      setError(err.message ?? 'Failed to load dashboard.')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load dashboard.'
+      setError(msg)
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchData()
+    })
+  }, [])
 
   const stats = data?.stats ?? null
 

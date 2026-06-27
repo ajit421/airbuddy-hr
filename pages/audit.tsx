@@ -89,15 +89,23 @@ const ALL_AUDIT_ACTIONS: AuditAction[] = [
   'SETTINGS_UPDATE', 'SIGNATURE_UPDATE',
 ]
 
-function formatTimestamp(ts: any): string {
+interface FirestoreTimestamp {
+  toDate?: () => Date
+  _seconds?: number
+  seconds?: number
+}
+
+function formatTimestamp(ts: FirestoreTimestamp | string | number | null | undefined): string {
   if (!ts) return '—'
   try {
     const date =
-      ts?.toDate
+      typeof ts === 'object' && ts.toDate
         ? ts.toDate()
-        : ts._seconds
+        : typeof ts === 'object' && ts._seconds
         ? new Date(ts._seconds * 1000)
-        : new Date(ts)
+        : typeof ts === 'object' && ts.seconds
+        ? new Date(ts.seconds * 1000)
+        : new Date(ts as string | number)
     return date.toLocaleString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -174,11 +182,12 @@ export default function AuditLogPage() {
         nextCursor: data.nextCursor ?? null,
         error: null,
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load audit logs.'
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: err.message ?? 'Failed to load audit logs.',
+        error: msg,
       }))
     }
   }, [buildUrl])
@@ -197,14 +206,17 @@ export default function AuditLogPage() {
         hasMore: data.hasMore ?? false,
         nextCursor: data.nextCursor ?? null,
       }))
-    } catch (err: any) {
-      setState((prev) => ({ ...prev, loadingMore: false, error: err.message }))
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load more audit logs.'
+      setState((prev) => ({ ...prev, loadingMore: false, error: msg }))
     }
   }
 
   // Re-fetch when server-side filters change
   useEffect(() => {
-    fetchLogs()
+    Promise.resolve().then(() => {
+      fetchLogs()
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionFilter, entityFilter, startDate, endDate])
 
@@ -266,7 +278,7 @@ export default function AuditLogPage() {
           </div>
 
           {/* Action filter */}
-          <Select value={actionFilter} onValueChange={setActionFilter}>
+          <Select value={actionFilter} onValueChange={(v: string | null) => setActionFilter(v ?? '')}>
             <SelectTrigger
               id="audit-action-filter"
               className="w-[190px] bg-[#13161e] border-white/[0.08] text-slate-300"
@@ -290,7 +302,7 @@ export default function AuditLogPage() {
           </Select>
 
           {/* Entity type filter */}
-          <Select value={entityFilter} onValueChange={setEntityFilter}>
+          <Select value={entityFilter} onValueChange={(v: string | null) => setEntityFilter(v ?? '')}>
             <SelectTrigger
               id="audit-entity-filter"
               className="w-[160px] bg-[#13161e] border-white/[0.08] text-slate-300"
