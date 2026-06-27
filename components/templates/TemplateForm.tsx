@@ -1,8 +1,11 @@
 // components/templates/TemplateForm.tsx
 // Shared form component for creating and editing templates.
 // Used by both pages/templates/new.tsx and pages/templates/[id].tsx
+//
+// For type === 'certificate': shows PNG upload + preview (no markdown editor).
+// For all other types: shows markdown editor + variable picker (unchanged).
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
@@ -10,25 +13,30 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toast } from 'sonner'
 import type { Template, DocumentType } from '@/types/template'
 import type { EmployeeStatus } from '@/types/employee'
-import { DOCUMENT_TYPE_LABELS, ALL_DOCUMENT_TYPES } from '@/constants/document-types'
 import {
   VARIABLE_REGISTRY,
   EMPLOYEE_VARIABLES,
   SETTINGS_VARIABLES,
   COMPUTED_VARIABLES,
 } from '@/constants/variable-registry'
+import { DOCUMENT_TYPE_LABELS, ALL_DOCUMENT_TYPES } from '@/constants/document-types'
 import { extractVariables } from '@/lib/templates/extract-variables'
-import { Save, Variable, User, Building2, CalendarDays, Info } from 'lucide-react'
+import {
+  Save,
+  Variable,
+  User,
+  Building2,
+  CalendarDays,
+  Info,
+  Upload,
+  ImageOff,
+  Loader2,
+  Award,
+} from 'lucide-react'
+import Image from 'next/image'
 
 // Lazy-load the markdown editor to avoid SSR issues
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
@@ -95,6 +103,161 @@ function VariableChip({
   )
 }
 
+// ── Certificate background upload section ─────────────────────────────────
+
+function CertificateBackgroundUpload({
+  currentUrl,
+  onUploaded,
+}: {
+  currentUrl: string
+  onUploaded: (url: string) => void
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl || null)
+  const [imgError, setImgError] = useState(false)
+
+  useEffect(() => {
+    if (currentUrl) {
+      setPreviewUrl(currentUrl)
+      setImgError(false)
+    }
+  }, [currentUrl])
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.type !== 'image/png') {
+      toast.error('Only PNG images are accepted for certificate backgrounds.')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large. Maximum certificate background size is 10 MB.')
+      return
+    }
+
+    // Show local preview immediately
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+    setImgError(false)
+
+    setUploading(true)
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          // Strip the data URL prefix
+          resolve(result.split(',')[1])
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const res = await fetch('/api/certificates/upload-background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Upload failed.')
+      }
+
+      const data = await res.json()
+      onUploaded(data.backgroundImageUrl)
+      toast.success('Certificate background uploaded!')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to upload background.'
+      toast.error(msg)
+      setPreviewUrl(currentUrl || null)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row gap-6 items-start">
+        {/* Preview */}
+        <div className="flex-shrink-0">
+          <p className="text-xs text-slate-400 mb-2">Background Preview</p>
+          <div className="w-64 h-[181px] rounded-lg border border-white/[0.08] bg-white/[0.03] flex items-center justify-center overflow-hidden relative">
+            {previewUrl && !imgError ? (
+              <Image
+                src={previewUrl}
+                alt="Certificate Background"
+                fill
+                style={{ objectFit: 'contain' }}
+                unoptimized
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-slate-600">
+                <ImageOff className="w-8 h-8" />
+                <span className="text-xs">No background uploaded</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Upload controls */}
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Accepted: <span className="text-slate-300">PNG only</span></p>
+            <p className="text-xs text-slate-400">Maximum size: <span className="text-slate-300">10 MB</span></p>
+            <p className="text-xs text-slate-400 mt-1">Recommended: <span className="text-slate-300">2000 × 1414 px</span></p>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png"
+            className="hidden"
+            id="cert-bg-file-input"
+            onChange={handleFileChange}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="border-white/[0.1] text-slate-300 hover:bg-white/[0.05] bg-transparent gap-2 w-fit"
+            id="btn-upload-cert-bg"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                {previewUrl && !imgError ? 'Replace Background' : 'Upload Background PNG'}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Info callout */}
+      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 flex items-start gap-3">
+        <Award className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+        <div>
+          <p className="text-xs font-medium text-amber-300 mb-1">Certificate Layout Config</p>
+          <p className="text-[11px] text-amber-400/80 leading-relaxed">
+            Text field positions (name, designation, date, body paragraph) are seeded from the default config.
+            You can adjust them directly in Firestore or ask your developer to update the seed script for custom layouts.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main form ─────────────────────────────────────────────────────────────
 
 export default function TemplateForm({ initial, mode }: TemplateFormProps) {
@@ -109,8 +272,16 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
   )
   const [saving, setSaving] = useState(false)
 
-  // Track detected variables from content
-  const detectedVars = extractVariables(markdownContent)
+  // Certificate-specific: background image URL
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (initial as any)?.backgroundImageUrl ?? ''
+  )
+
+  const isCertificate = type === 'certificate'
+
+  // Track detected variables from content (only relevant for markdown types)
+  const detectedVars = isCertificate ? [] : extractVariables(markdownContent)
 
   // ── Status toggle ──────────────────────────────────────────────────────
 
@@ -121,15 +292,12 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
   }
 
   // ── Insert variable at cursor ──────────────────────────────────────────
-  // @uiw/react-md-editor doesn't expose textarea ref directly, so we find
-  // the textarea in the DOM and insert at cursor position.
 
   const editorRef = useRef<HTMLDivElement>(null)
 
   const insertVariable = useCallback((varName: string) => {
     const token = `{{${varName}}}`
 
-    // Try to find the textarea inside the editor wrapper
     const textarea = editorRef.current?.querySelector<HTMLTextAreaElement>('textarea.w-md-editor-text-input')
     if (textarea) {
       const start = textarea.selectionStart ?? markdownContent.length
@@ -137,14 +305,12 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
       const newContent =
         markdownContent.substring(0, start) + token + markdownContent.substring(end)
       setMarkdownContent(newContent)
-      // Restore focus and cursor after React re-render
       requestAnimationFrame(() => {
         textarea.focus()
         const newPos = start + token.length
         textarea.setSelectionRange(newPos, newPos)
       })
     } else {
-      // Fallback: append at end
       setMarkdownContent((prev) => prev + token)
     }
   }, [markdownContent])
@@ -156,6 +322,54 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
       toast.error('Template name is required.')
       return
     }
+
+    if (isCertificate) {
+      // Certificate: no markdown content required
+      setSaving(true)
+      try {
+        const payload = {
+          name: name.trim(),
+          type,
+          description: description.trim(),
+          markdownContent: '',
+          applicableStatus,
+          backgroundImageUrl,
+          // Note: textFields, bodyBox, bodyTemplate are set by seed script
+          // and preserved on PATCH (not overwritten here)
+        }
+
+        let res: Response
+        if (mode === 'create') {
+          res = await fetch('/api/templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+        } else {
+          res = await fetch(`/api/templates/${initial!.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+        }
+
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error ?? 'Unknown error')
+        }
+
+        toast.success(mode === 'create' ? 'Certificate template created!' : 'Certificate template updated!')
+        router.push('/templates')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to save template.'
+        toast.error(msg)
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
+    // Markdown-based template validation
     if (!markdownContent.trim()) {
       toast.error('Template content cannot be empty.')
       return
@@ -214,7 +428,7 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Name */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 md:col-span-2">
             <Label htmlFor="tmpl-name" className="text-slate-300 text-xs">
               Template Name <span className="text-red-400">*</span>
             </Label>
@@ -222,31 +436,9 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
               id="tmpl-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Standard Offer Letter"
+              placeholder="e.g. Internship Certificate"
               className="bg-[#0e1017] border-white/[0.08] text-slate-100 placeholder:text-slate-500 focus-visible:ring-indigo-500/50"
             />
-          </div>
-
-          {/* Document Type */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="tmpl-type" className="text-slate-300 text-xs">
-              Document Type <span className="text-red-400">*</span>
-            </Label>
-            <Select value={type} onValueChange={(v: string | null) => setType((v ?? type) as DocumentType)}>
-              <SelectTrigger
-                id="tmpl-type"
-                className="bg-[#0e1017] border-white/[0.08] text-slate-300"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#13161e] border-white/[0.08] text-slate-200">
-                {ALL_DOCUMENT_TYPES.map((dt) => (
-                  <SelectItem key={dt} value={dt} className="focus:bg-indigo-600/20">
-                    {DOCUMENT_TYPE_LABELS[dt]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Description */}
@@ -289,107 +481,123 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
         </div>
       </div>
 
-      {/* ── Section 2: Editor + Variable Picker ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-4">
-        {/* Markdown editor */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-slate-300 text-xs">
-              Template Content (Markdown) <span className="text-red-400">*</span>
-            </Label>
-            {detectedVars.length > 0 && (
-              <span className="text-xs text-slate-500">
-                {detectedVars.length} variable{detectedVars.length !== 1 ? 's' : ''} detected
-              </span>
-            )}
+      {/* ── Section 2a: Certificate background upload ── */}
+      {isCertificate && (
+        <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-6">
+          <h2 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
+            <Award className="w-4 h-4 text-amber-400" />
+            Certificate Background
+          </h2>
+          <p className="text-xs text-slate-500 mb-5">
+            Upload the background PNG image for this certificate design. Text will be stamped on top at the configured coordinates.
+          </p>
+          <CertificateBackgroundUpload
+            currentUrl={backgroundImageUrl}
+            onUploaded={setBackgroundImageUrl}
+          />
+        </div>
+      )}
+
+      {/* ── Section 2b: Markdown editor + Variable Picker (non-certificate only) ── */}
+      {!isCertificate && (
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-4">
+          {/* Markdown editor */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-slate-300 text-xs">
+                Template Content (Markdown) <span className="text-red-400">*</span>
+              </Label>
+              {detectedVars.length > 0 && (
+                <span className="text-xs text-slate-500">
+                  {detectedVars.length} variable{detectedVars.length !== 1 ? 's' : ''} detected
+                </span>
+              )}
+            </div>
+            <div
+              ref={editorRef}
+              data-color-mode="dark"
+              className="rounded-xl overflow-hidden border border-white/[0.08]"
+              style={{ minHeight: '520px' }}
+            >
+              <MDEditor
+                value={markdownContent}
+                onChange={(val) => setMarkdownContent(val ?? '')}
+                height={520}
+                preview="live"
+                style={{
+                  background: '#0e1017',
+                  borderRadius: 0,
+                }}
+              />
+            </div>
           </div>
-          <div
-            ref={editorRef}
-            data-color-mode="dark"
-            className="rounded-xl overflow-hidden border border-white/[0.08]"
-            style={{ minHeight: '520px' }}
-          >
-            <MDEditor
-              value={markdownContent}
-              onChange={(val) => setMarkdownContent(val ?? '')}
-              height={520}
-              preview="live"
-              style={{
-                background: '#0e1017',
-                borderRadius: 0,
-              }}
-            />
+
+          {/* Variable picker panel */}
+          <div className="flex flex-col gap-3">
+            <Label className="text-slate-300 text-xs">Variable Picker</Label>
+            <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-4 flex flex-col gap-5 sticky top-4">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Click a variable to insert it at the cursor position in the editor.
+              </p>
+
+              {VARIABLE_GROUPS.map(({ label, icon: Icon, vars }) => (
+                <div key={label} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium uppercase tracking-wider">
+                    <Icon className="w-3 h-3" />
+                    {label}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {vars.map((v) => (
+                      <VariableChip key={v} varName={v} onClick={insertVariable} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Detected variables */}
+              {detectedVars.length > 0 && (
+                <div className="border-t border-white/[0.06] pt-4 flex flex-col gap-2">
+                  <div className="text-slate-400 text-[11px] font-medium uppercase tracking-wider">
+                    Used in Template
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {detectedVars.map((v) => {
+                      const isDirectSettings = v.startsWith('__settings.')
+                      const isDirectComputed = v.startsWith('__computed.')
+                      const isKnown = !!(VARIABLE_REGISTRY[v] || isDirectSettings || isDirectComputed)
+
+                      let tooltip: string
+                      if (VARIABLE_REGISTRY[v]) {
+                        tooltip = `Source: ${VARIABLE_REGISTRY[v]}`
+                      } else if (isDirectSettings) {
+                        tooltip = `Direct settings field: ${v.replace('__settings.', '')}`
+                      } else if (isDirectComputed) {
+                        tooltip = `Computed at runtime: ${v.replace('__computed.', '')}`
+                      } else {
+                        tooltip = 'Unknown variable — not in registry'
+                      }
+
+                      return (
+                        <span
+                          key={v}
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                            isKnown
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                          }`}
+                          title={tooltip}
+                        >
+                          {v}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Variable picker panel */}
-        <div className="flex flex-col gap-3">
-          <Label className="text-slate-300 text-xs">Variable Picker</Label>
-          <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-4 flex flex-col gap-5 sticky top-4">
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Click a variable to insert it at the cursor position in the editor.
-            </p>
-
-            {VARIABLE_GROUPS.map(({ label, icon: Icon, vars }) => (
-              <div key={label} className="flex flex-col gap-2">
-                <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium uppercase tracking-wider">
-                  <Icon className="w-3 h-3" />
-                  {label}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {vars.map((v) => (
-                    <VariableChip key={v} varName={v} onClick={insertVariable} />
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {/* Detected variables */}
-            {detectedVars.length > 0 && (
-              <div className="border-t border-white/[0.06] pt-4 flex flex-col gap-2">
-                <div className="text-slate-400 text-[11px] font-medium uppercase tracking-wider">
-                  Used in Template
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {detectedVars.map((v) => {
-                    // A variable is "known" if it's in the registry OR uses a
-                    // direct path prefix (__settings.* / __computed.*) which
-                    // fill-variables.ts resolves natively.
-                    const isDirectSettings = v.startsWith('__settings.')
-                    const isDirectComputed = v.startsWith('__computed.')
-                    const isKnown = !!(VARIABLE_REGISTRY[v] || isDirectSettings || isDirectComputed)
-
-                    let tooltip: string
-                    if (VARIABLE_REGISTRY[v]) {
-                      tooltip = `Source: ${VARIABLE_REGISTRY[v]}`
-                    } else if (isDirectSettings) {
-                      tooltip = `Direct settings field: ${v.replace('__settings.', '')}`
-                    } else if (isDirectComputed) {
-                      tooltip = `Computed at runtime: ${v.replace('__computed.', '')}`
-                    } else {
-                      tooltip = 'Unknown variable — not in registry'
-                    }
-
-                    return (
-                      <span
-                        key={v}
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                          isKnown
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        }`}
-                        title={tooltip}
-                      >
-                        {v}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* ── Save button ── */}
       <div className="flex justify-end gap-3 pt-2 border-t border-white/[0.06]">

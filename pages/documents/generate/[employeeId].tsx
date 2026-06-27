@@ -30,6 +30,8 @@ import {
   ArrowLeft,
   User,
   Sparkles,
+  Award,
+  ImageDown,
 } from 'lucide-react'
 
 // Dynamically import the markdown editor to avoid SSR issues
@@ -146,6 +148,27 @@ export default function GenerateDocPage() {
   const [aiWarning, setAiWarning] = useState<string | null>(null)
   const [aiImprovedApplied, setAiImprovedApplied] = useState(false)
 
+  // ── Certificate generation state ─────────────────────────────────────────
+  // Used when selectedTemplate.type === 'certificate' (bypasses Steps 3 & 4)
+  const CERTIFICATE_FIELDS: { key: string; label: string; placeholder: string }[] = [
+    { key: 'full_name',      label: 'Full Name',              placeholder: 'e.g. Aarush Bhagat' },
+    { key: 'designation',   label: 'Designation / Role',     placeholder: 'e.g. Frontend Developer Intern' },
+    { key: 'relation_type', label: 'Relation Type',          placeholder: 'e.g. S/o, or D/o,' },
+    { key: 'parent_name',   label: "Parent's Name",          placeholder: 'e.g. Mr. abc' },
+    { key: 'degree',        label: 'Degree',                  placeholder: 'e.g. B.Tech (Computer Science)' },
+    { key: 'institute_name',label: 'Institute Name',          placeholder: 'e.g. xyz Professional University' },
+    { key: 'company_name',  label: 'Company Name',            placeholder: 'e.g. AirBuddy Aerospace Pvt. Ltd.' },
+    { key: 'joining_date',  label: 'Joining Date',            placeholder: 'e.g. January 6, 2026' },
+    { key: 'end_date',      label: 'End Date',                placeholder: 'e.g. March 31, 2026' },
+    { key: 'department',    label: 'Department',              placeholder: 'e.g. the Technology department' },
+    { key: 'pronoun',       label: 'Pronoun (he/she)',        placeholder: 'he' },
+    { key: 'pronoun_object',label: 'Pronoun Object (him/her)',placeholder: 'him' },
+    { key: 'current_date',  label: 'Date on Certificate',    placeholder: 'e.g. April 1, 2026' },
+  ]
+  const [certVars, setCertVars] = useState<Record<string, string>>({})
+  const [certGenerating, setCertGenerating] = useState(false)
+  const [certSuccess, setCertSuccess] = useState(false)
+
   // ── Fetch employee ───────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -201,6 +224,24 @@ export default function GenerateDocPage() {
     async (template: Template) => {
       if (!employeeId) return
       setSelectedTemplate(template)
+      setCertSuccess(false)
+
+      // Certificate type: go to step 2 immediately (no server-side generate call)
+      if (template.type === 'certificate') {
+        // Pre-populate known fields from employee data
+        const today = new Date().toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+        setCertVars({
+          full_name: employee?.fullName ?? '',
+          current_date: today,
+        })
+        setStep(2)
+        return
+      }
+
       setStep(2)
       setGenerating(true)
       setCustomVars({})
@@ -231,8 +272,44 @@ export default function GenerateDocPage() {
         setGenerating(false)
       }
     },
-    [employeeId]
+    [employeeId, employee]
   )
+
+  // ── Certificate: generate + download PNG ──────────────────────────────────────
+
+  const handleGenerateCertificate = useCallback(async () => {
+    if (!employeeId || !selectedTemplate) return
+    setCertGenerating(true)
+    try {
+      const res = await fetch('/api/certificates/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          employeeId,
+          data: certVars,
+        }),
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Certificate generation failed')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${certVars.full_name ?? 'certificate'}_Certificate.png`
+      a.click()
+      URL.revokeObjectURL(url)
+      setCertSuccess(true)
+      toast.success('Certificate generated and downloaded!')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Certificate generation failed'
+      toast.error(msg)
+    } finally {
+      setCertGenerating(false)
+    }
+  }, [employeeId, selectedTemplate, certVars])
 
   // ── Step 2: Re-generate with custom variables ─────────────────────────────────
 
@@ -543,56 +620,80 @@ export default function GenerateDocPage() {
           </div>
         )}
 
-        {/* ── STEP 2: Review Variables ── */}
+        {/* ── STEP 2: Review Variables (or Certificate Form) ── */}
         {step === 2 && (
           <div>
-            <h2 className="text-lg font-semibold text-white mb-1">Review Variables</h2>
-            <p className="text-sm text-slate-500 mb-5">
-              Template: <span className="text-slate-300">{selectedTemplate?.name}</span>
-            </p>
-
-            {generating ? (
-              <div className="flex flex-col items-center gap-4 py-20">
-                <Loader2 className="w-10 h-10 text-indigo-400 animate-spin" />
-                <p className="text-slate-400">Generating document…</p>
-              </div>
-            ) : (
+            {/* ── CERTIFICATE BRANCH ── */}
+            {selectedTemplate?.type === 'certificate' ? (
               <div className="flex flex-col gap-5">
-                {missingVariables.length > 0 ? (
-                  <>
-                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <AlertTriangle className="w-4 h-4 text-amber-400" />
-                        <span className="text-amber-300 font-medium text-sm">
-                          {missingVariables.length} missing variable{missingVariables.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <p className="text-amber-500/70 text-xs">
-                        Fill in the fields below and click &quot;Generate&quot; to continue.
+                <div>
+                  <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-amber-400" />
+                    Certificate Details
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    Template: <span className="text-slate-300">{selectedTemplate?.name}</span>
+                  </p>
+                </div>
+
+                {certSuccess ? (
+                  /* ── Success state ── */
+                  <div className="flex flex-col items-center gap-5 py-12 rounded-xl border border-white/[0.08] bg-[#13161e]">
+                    <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                      <Award className="w-8 h-8 text-amber-400" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-white font-semibold text-lg">Certificate Generated!</p>
+                      <p className="text-slate-400 text-sm mt-1">
+                        The PNG has been downloaded to your computer.
                       </p>
                     </div>
-
-                    <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-5 flex flex-col gap-4">
-                      {missingVariables.map((varName) => (
-                        <div key={varName}>
-                          <label
-                            htmlFor={`var-${varName}`}
-                            className="block text-xs font-medium text-amber-400 mb-1.5"
-                          >
-                            {`{{${varName}}}`}
-                          </label>
-                          <input
-                            id={`var-${varName}`}
-                            type="text"
-                            placeholder={`Enter value for ${varName}`}
-                            value={customVars[varName] ?? ''}
-                            onChange={(e) =>
-                              setCustomVars((prev) => ({ ...prev, [varName]: e.target.value }))
-                            }
-                            className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-amber-500/30 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 transition-colors"
-                          />
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        className="border-white/[0.1] text-slate-300 hover:bg-white/[0.05] bg-transparent gap-2"
+                        onClick={() => { setCertSuccess(false) }}
+                        id="btn-cert-generate-another"
+                      >
+                        Edit & Re-generate
+                      </Button>
+                      <Button
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
+                        onClick={() => router.push('/employees')}
+                        id="btn-cert-done"
+                      >
+                        <Check className="w-4 h-4" />
+                        Done
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Certificate form ── */
+                  <>
+                    <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {CERTIFICATE_FIELDS.map(({ key, label, placeholder }) => (
+                          <div key={key} className={key === 'full_name' || key === 'designation' ? 'sm:col-span-2' : ''}>
+                            <label
+                              htmlFor={`cert-${key}`}
+                              className="block text-xs font-medium text-slate-400 mb-1.5"
+                            >
+                              {label}
+                            </label>
+                            <input
+                              id={`cert-${key}`}
+                              type="text"
+                              placeholder={placeholder}
+                              value={certVars[key] ?? ''}
+                              onChange={(e) =>
+                                setCertVars((prev) => ({ ...prev, [key]: e.target.value }))
+                              }
+                              className="w-full px-3 py-2 rounded-lg bg-[#0e1017] border border-white/[0.08] text-white text-sm
+                                         placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 transition-colors"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -606,27 +707,108 @@ export default function GenerateDocPage() {
                         Change Template
                       </Button>
                       <Button
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
-                        onClick={handleFillMissing}
-                        disabled={generating}
-                        id="btn-generate-with-vars"
+                        className="bg-amber-600 hover:bg-amber-500 text-white gap-2"
+                        onClick={handleGenerateCertificate}
+                        disabled={certGenerating}
+                        id="btn-generate-certificate"
                       >
-                        {generating ? (
+                        {certGenerating ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          <Sparkles className="w-4 h-4" />
+                          <ImageDown className="w-4 h-4" />
                         )}
-                        Generate Document
+                        {certGenerating ? 'Generating…' : 'Generate Certificate'}
                       </Button>
                     </div>
                   </>
+                )}
+              </div>
+            ) : (
+              /* ── STANDARD MARKDOWN BRANCH ── */
+              <div>
+                <h2 className="text-lg font-semibold text-white mb-1">Review Variables</h2>
+                <p className="text-sm text-slate-500 mb-5">
+                  Template: <span className="text-slate-300">{selectedTemplate?.name}</span>
+                </p>
+
+                {generating ? (
+                  <div className="flex flex-col items-center gap-4 py-20">
+                    <Loader2 className="w-10 h-10 text-indigo-400 animate-spin" />
+                    <p className="text-slate-400">Generating document…</p>
+                  </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-4 py-16">
-                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                      <Check className="w-7 h-7 text-emerald-400" />
-                    </div>
-                    <p className="text-white font-medium">All variables filled!</p>
-                    <p className="text-slate-500 text-sm">Proceeding to editor…</p>
+                  <div className="flex flex-col gap-5">
+                    {missingVariables.length > 0 ? (
+                      <>
+                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <AlertTriangle className="w-4 h-4 text-amber-400" />
+                            <span className="text-amber-300 font-medium text-sm">
+                              {missingVariables.length} missing variable{missingVariables.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <p className="text-amber-500/70 text-xs">
+                            Fill in the fields below and click &quot;Generate&quot; to continue.
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-5 flex flex-col gap-4">
+                          {missingVariables.map((varName) => (
+                            <div key={varName}>
+                              <label
+                                htmlFor={`var-${varName}`}
+                                className="block text-xs font-medium text-amber-400 mb-1.5"
+                              >
+                                {`{{${varName}}}`}
+                              </label>
+                              <input
+                                id={`var-${varName}`}
+                                type="text"
+                                placeholder={`Enter value for ${varName}`}
+                                value={customVars[varName] ?? ''}
+                                onChange={(e) =>
+                                  setCustomVars((prev) => ({ ...prev, [varName]: e.target.value }))
+                                }
+                                className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-amber-500/30 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 transition-colors"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <Button
+                            variant="ghost"
+                            className="text-slate-400 hover:text-white gap-1"
+                            onClick={() => setStep(1)}
+                            id="btn-back-to-step1"
+                          >
+                            <ArrowLeft className="w-4 h-4" />
+                            Change Template
+                          </Button>
+                          <Button
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2"
+                            onClick={handleFillMissing}
+                            disabled={generating}
+                            id="btn-generate-with-vars"
+                          >
+                            {generating ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-4 h-4" />
+                            )}
+                            Generate Document
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-4 py-16">
+                        <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                          <Check className="w-7 h-7 text-emerald-400" />
+                        </div>
+                        <p className="text-white font-medium">All variables filled!</p>
+                        <p className="text-slate-500 text-sm">Proceeding to editor…</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

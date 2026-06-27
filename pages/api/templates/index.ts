@@ -29,21 +29,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     return await withAuth(req, res, async (uid, email) => {
       try {
-        const { name, type, description, markdownContent, applicableStatus, isActive, isDefault } =
-          req.body
+        const {
+          name,
+          type,
+          description,
+          markdownContent,
+          applicableStatus,
+          isActive,
+          isDefault,
+          // Certificate-specific fields
+          backgroundImageUrl,
+          imageWidth,
+          imageHeight,
+          textFields,
+          bodyBox,
+          bodyTemplate,
+        } = req.body
 
-        if (!name || !type || !markdownContent) {
-          return res.status(400).json({ error: 'name, type, and markdownContent are required.' })
+        if (!name || !type) {
+          return res.status(400).json({ error: 'name and type are required.' })
+        }
+
+        // For certificate type, markdownContent is not required
+        if (type !== 'certificate' && !markdownContent) {
+          return res.status(400).json({ error: 'markdownContent is required for non-certificate templates.' })
         }
 
         const now = new Date().toISOString()
-        const variables = extractVariables(markdownContent)
+        const content = markdownContent ?? ''
+        const variables = type === 'certificate' ? [] : extractVariables(content)
 
-        const docRef = await adminDb.collection('templates').add({
+        const docData: Record<string, unknown> = {
           name,
           type,
           description: description ?? '',
-          markdownContent,
+          markdownContent: content,
           variables,
           applicableStatus: applicableStatus ?? [],
           isActive: isActive ?? true,
@@ -52,7 +72,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: now,
           createdBy: uid,
           updatedBy: uid,
-        })
+        }
+
+        // Persist certificate-specific config fields if present
+        if (type === 'certificate') {
+          if (backgroundImageUrl !== undefined) docData.backgroundImageUrl = backgroundImageUrl
+          if (imageWidth !== undefined) docData.imageWidth = imageWidth
+          if (imageHeight !== undefined) docData.imageHeight = imageHeight
+          if (textFields !== undefined) docData.textFields = textFields
+          if (bodyBox !== undefined) docData.bodyBox = bodyBox
+          if (bodyTemplate !== undefined) docData.bodyTemplate = bodyTemplate
+        }
+
+        const docRef = await adminDb.collection('templates').add(docData)
 
         await createAuditLog({
           action: 'TEMPLATE_CREATE',

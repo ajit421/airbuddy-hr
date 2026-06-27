@@ -58,6 +58,7 @@ const DOC_TYPE_COLORS: Record<DocumentType, string> = {
   salary_slip:         'bg-teal-500/15 text-teal-400 border-teal-500/25',
   experience_letter:   'bg-orange-500/15 text-orange-400 border-orange-500/25',
   appointment_letter:  'bg-pink-500/15 text-pink-400 border-pink-500/25',
+  certificate:         'bg-amber-500/15 text-amber-400 border-amber-500/25',
 }
 
 function DocTypeBadge({ type }: { type: DocumentType }) {

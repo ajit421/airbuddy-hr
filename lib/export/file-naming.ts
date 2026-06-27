@@ -29,7 +29,7 @@ function toPascalCase(str: string): string {
 export function generateFileName(
   employeeId: string,
   documentType: string,
-  ext: 'pdf' | 'docx' | 'md'
+  ext: 'pdf' | 'docx' | 'md' | 'png'
 ): string {
   const typeLabel = toPascalCase(documentType)
   const dateStr   = format(new Date(), 'yyyyMMdd')

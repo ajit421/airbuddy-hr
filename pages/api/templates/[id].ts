@@ -44,7 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           applicableStatus,
           isActive,
           isDefault,
-        } = req.body as Partial<Template>
+          backgroundImageUrl,
+        } = req.body as Partial<Template> & { backgroundImageUrl?: string }
 
         const updates: Record<string, unknown> = {}
         if (name !== undefined) updates.name = name
@@ -54,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (isDefault !== undefined) updates.isDefault = isDefault
         if (applicableStatus !== undefined) updates.applicableStatus = applicableStatus
         if (variables !== undefined) updates.variables = variables
+        if (backgroundImageUrl !== undefined) updates.backgroundImageUrl = backgroundImageUrl
 
         // Re-extract variables if content changed
         if (markdownContent !== undefined) {
