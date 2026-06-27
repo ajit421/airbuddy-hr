@@ -80,8 +80,10 @@ function SignatureSection({
   // Sync preview when parent loads
   useEffect(() => {
     if (currentUrl) {
-      setPreviewUrl(currentUrl)
-      setImgError(false)
+      Promise.resolve().then(() => {
+        setPreviewUrl(currentUrl)
+        setImgError(false)
+      })
     }
   }, [currentUrl])
 
@@ -124,8 +126,9 @@ function SignatureSection({
       const data = await res.json()
       onUploaded(data.signatureUrl)
       toast.success('Signature uploaded successfully!')
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to upload signature.')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to upload signature.'
+      toast.error(msg)
       // Revert preview
       setPreviewUrl(currentUrl || null)
     } finally {
@@ -282,8 +285,9 @@ export default function SettingsPage() {
       })
       if (!res.ok) throw new Error((await res.json()).error)
       toast.success('Settings saved successfully!')
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to save settings.')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save settings.'
+      toast.error(msg)
     } finally {
       setSaving(false)
     }

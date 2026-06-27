@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { AlertCircle } from 'lucide-react'
 
@@ -51,9 +52,11 @@ export default function LoginPage() {
           <div className="flex flex-col items-center mb-8">
             <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-white shadow-xl shadow-black/30 mb-4 p-3">
               {/* Drop your logo at: public/logo.png */}
-              <img
+              <Image
                 src="/logo.png"
                 alt="AirBuddy Logo"
+                width={56}
+                height={56}
                 className="w-full h-full object-contain"
               />
             </div>
