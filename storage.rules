@@ -1,7 +1,24 @@
 rules_version = '2';
+
+// ════════════════════════════════════════════════════════════════════════════════
+// AirBuddy HR — Firebase Storage Security Rules
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// This application does NOT use Firebase Storage for file storage.
+// All file uploads (employee documents, signatures) go to Cloudinary
+// via the server-side helpers in lib/cloudinary/storage-helpers.ts.
+//
+// These rules lock down Firebase Storage completely to prevent any
+// accidental or malicious uploads using the public Firebase config.
+//
+// If you migrate to Firebase Storage in the future, update these rules
+// to allow authenticated access to specific paths only.
+// ════════════════════════════════════════════════════════════════════════════════
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Lock down all client-side direct access.
+    // Deny all client-side reads and writes globally.
+    // Firebase Storage is not used — Cloudinary handles all file storage.
     match /{allPaths=**} {
       allow read, write: if false;
     }
