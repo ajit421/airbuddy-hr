@@ -6,6 +6,20 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { adminDb } from '@/lib/firebase/admin'
 import { withAuth } from '@/lib/api-middleware'
 
+interface EmployeeData {
+  id: string
+  status?: string
+  createdAt?: {
+    _seconds?: number
+    seconds?: number
+  }
+  fullName?: string
+  employeeId?: string
+  department?: string
+  designation?: string
+  joiningDate?: string
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -19,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .where('isDeleted', '==', false)
         .get()
 
-      const employees = empSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as any))
+      const employees = empSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as unknown as EmployeeData))
 
       const totalEmployees  = employees.length
       const fullTimeCount   = employees.filter((e) => e.status === 'full-time').length
@@ -37,12 +51,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const recentEmployees = sortedEmployees.slice(0, 5).map((e) => ({
         id:          e.id,
-        fullName:    e.fullName,
-        employeeId:  e.employeeId,
-        department:  e.department,
-        designation: e.designation,
-        status:      e.status,
-        joiningDate: e.joiningDate,
+        fullName:    e.fullName ?? '',
+        employeeId:  e.employeeId ?? '',
+        department:  e.department ?? '',
+        designation: e.designation ?? '',
+        status:      e.status ?? '',
+        joiningDate: e.joiningDate ?? '',
       }))
 
       // ── 2. Document count (all-time) ───────────────────────────────────────
@@ -88,9 +102,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         recentEmployees,
         recentActivity,
       })
-    } catch (err: any) {
-      console.error('[GET /api/dashboard] Error:', err?.message ?? err)
-      return res.status(500).json({ error: 'Failed to load dashboard data', detail: err?.message })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[GET /api/dashboard] Error:', msg)
+      return res.status(500).json({ error: 'Failed to load dashboard data', detail: msg })
     }
   })
 }
+

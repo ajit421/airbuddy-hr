@@ -36,7 +36,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'PUT' || req.method === 'PATCH') {
     return await withAuth(req, res, async (uid, email) => {
       try {
-        const updates = { ...req.body }
+        // Whitelist only CompanySettings fields — prevents mass assignment
+        const {
+          companyName,
+          companyAddress,
+          companyCIN,
+          companyEmail,
+          companyPhone,
+          hrName,
+          hrDesignation,
+          signatureStoragePath,
+          employeeIdPrefix,
+          employeeIdYear,
+          employeeIdCounter,
+        } = req.body as Partial<CompanySettings>
+
+        // Build update object with only provided (non-undefined) fields
+        const updates: Record<string, unknown> = {}
+        if (companyName !== undefined) updates.companyName = companyName
+        if (companyAddress !== undefined) updates.companyAddress = companyAddress
+        if (companyCIN !== undefined) updates.companyCIN = companyCIN
+        if (companyEmail !== undefined) updates.companyEmail = companyEmail
+        if (companyPhone !== undefined) updates.companyPhone = companyPhone
+        if (hrName !== undefined) updates.hrName = hrName
+        if (hrDesignation !== undefined) updates.hrDesignation = hrDesignation
+        if (signatureStoragePath !== undefined) updates.signatureStoragePath = signatureStoragePath
+        if (employeeIdPrefix !== undefined) updates.employeeIdPrefix = employeeIdPrefix
+        if (employeeIdYear !== undefined) updates.employeeIdYear = employeeIdYear
+        if (employeeIdCounter !== undefined) updates.employeeIdCounter = employeeIdCounter
+
+        // Audit timestamps — always system-controlled
         updates.updatedAt = new Date().toISOString()
         updates.updatedBy = uid
 
@@ -48,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           entityId: 'company',
           performedBy: uid,
           performedByEmail: email,
-          metadata: { fields: Object.keys(req.body) },
+          metadata: { fields: Object.keys(updates).filter((k) => k !== 'updatedAt' && k !== 'updatedBy') },
         })
 
         res.status(200).json({ success: true })

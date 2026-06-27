@@ -3,6 +3,7 @@
 // Usage: node scripts/print-vercel-env.js
 // Then copy each value into Vercel → Settings → Environment Variables
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs')
 const path = require('path')
 

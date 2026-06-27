@@ -53,7 +53,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!snap) return res.status(404).json({ error: 'Employee not found' })
 
       // Strip fields that must never be overwritten via PUT
-      const { id: _id, employeeId, isDeleted, deletedAt, deletedBy, createdAt, createdBy, ...updates } = req.body
+      const updates = { ...req.body }
+      delete updates.id
+      delete updates.employeeId
+      delete updates.isDeleted
+      delete updates.deletedAt
+      delete updates.deletedBy
+      delete updates.createdAt
+      delete updates.createdBy
 
       await snap.ref.update({
         ...updates,
@@ -86,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       await snap.ref.update({
         isDeleted: true,
-        deletedAt: new Date().toISOString(),
+        deletedAt: FieldValue.serverTimestamp(),
         deletedBy: uid,
         updatedAt: FieldValue.serverTimestamp(),
         updatedBy: uid,

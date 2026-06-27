@@ -63,33 +63,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .collection('documents')
           .doc(docId)
 
-        // Get current version number from parent document
-        const parentDoc = await docRef.get()
-        if (!parentDoc.exists) {
-          return res.status(404).json({ error: 'Document not found.' })
-        }
-        const currentVersion: number = (parentDoc.data()?.currentVersion ?? 0) as number
-        const newVersionNumber = currentVersion + 1
-        const versionId = `v${newVersionNumber}`
+        // Atomically read currentVersion, write new version doc, and increment
+        // the counter on the parent — prevents duplicate version numbers under
+        // concurrent requests (H7).
+        const { versionId, newVersionNumber } = await adminDb.runTransaction(async (tx) => {
+          const parentDoc = await tx.get(docRef)
+          if (!parentDoc.exists) {
+            throw Object.assign(new Error('Document not found.'), { notFound: true })
+          }
 
-        // Write new version
-        await versionsRef.doc(versionId).set({
-          versionNumber: newVersionNumber,
-          markdownContent,
-          exportedAs: null,
-          exportStoragePath: null,
-          hasSigned: false,
-          signedAt: null,
-          aiImproved: aiImproved ?? false,
-          changeNote: changeNote ?? '',
-          createdAt: now,
-          createdBy: uid,
-        })
+          const currentVersion: number = (parentDoc.data()?.currentVersion ?? 0) as number
+          const nextVersion = currentVersion + 1
+          const nextVersionId = `v${nextVersion}`
 
-        // Increment currentVersion on parent doc + update timestamp
-        await docRef.update({
-          currentVersion: newVersionNumber,
-          updatedAt: now,
+          // Write new version document inside the transaction
+          tx.set(versionsRef.doc(nextVersionId), {
+            versionNumber: nextVersion,
+            markdownContent,
+            exportedAs: null,
+            exportStoragePath: null,
+            hasSigned: false,
+            signedAt: null,
+            aiImproved: aiImproved ?? false,
+            changeNote: changeNote ?? '',
+            createdAt: now,
+            createdBy: uid,
+          })
+
+          // Atomically increment currentVersion on parent doc
+          tx.update(docRef, {
+            currentVersion: nextVersion,
+            updatedAt: now,
+          })
+
+          return { versionId: nextVersionId, newVersionNumber: nextVersion }
         })
 
         await createAuditLog({
@@ -102,7 +109,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
         return res.status(201).json({ versionId, versionNumber: newVersionNumber })
-      } catch (err) {
+      } catch (err: unknown) {
+        const notFound = (err as { notFound?: boolean })?.notFound
+        if (notFound) return res.status(404).json({ error: 'Document not found.' })
         console.error('[POST /api/documents/[docId]/versions]', err)
         return res.status(500).json({ error: 'Failed to save version.' })
       }

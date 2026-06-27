@@ -40,7 +40,7 @@ export default function GenerateDocLandingPage() {
           <div>
             <p className="text-white font-medium text-lg">Select an Employee First</p>
             <p className="text-slate-500 text-sm mt-1 max-w-sm">
-              Go to the employee's profile and click <strong className="text-slate-300">Generate Doc</strong>, or browse employees to find the right person.
+              Go to the employee&apos;s profile and click <strong className="text-slate-300">Generate Doc</strong>, or browse employees to find the right person.
             </p>
           </div>
           <div className="flex gap-3">

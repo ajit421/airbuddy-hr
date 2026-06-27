@@ -3,7 +3,6 @@
 // Called from the settings API on first load.
 
 import { adminDb } from '@/lib/firebase/admin'
-import { FieldValue } from 'firebase-admin/firestore'
 import type { DocumentType } from '@/types/template'
 import type { EmployeeStatus } from '@/types/employee'
 import { extractVariables } from './extract-variables'

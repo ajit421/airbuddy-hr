@@ -8,6 +8,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { downloadBuffer } from '@/lib/cloudinary/storage-helpers'
 import { extractFromAadhaar, extractFromPAN } from '@/lib/gemini/ocr'
 import { createAuditLog } from '@/lib/audit/logger'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -15,6 +16,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   return withAuth(req, res, async (uid, email) => {
+    // M9 — Rate limit: 30 OCR calls per 10 minutes per user
+    const { allowed, remaining, resetAt } = checkRateLimit(`ocr:${uid}`, 30, 10 * 60 * 1000)
+    if (!allowed) {
+      res.setHeader('X-RateLimit-Remaining', '0')
+      res.setHeader('X-RateLimit-Reset', String(Math.ceil(resetAt / 1000)))
+      return res.status(429).json({
+        error: 'Rate limit exceeded. You can make 30 OCR requests per 10 minutes.',
+      })
+    }
+    res.setHeader('X-RateLimit-Remaining', String(remaining))
     const { cloudinaryUrl, fileType, employeeId, fileId } = req.body
 
     // Validate required fields
@@ -94,8 +105,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           error: ocrResult.error ?? 'OCR could not extract data. Please enter manually.',
         })
       }
-    } catch (err: any) {
-      console.error('[OCR extract]', err?.message ?? err)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[OCR extract]', msg)
       return res.status(500).json({
         success: false,
         error: 'OCR extraction failed. Please enter data manually.',

@@ -15,12 +15,13 @@ import type { CompanySettings } from '@/types/settings'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-/**
- * Resolve a dot-notation path against an object without lodash.
- * e.g. getNestedValue(employee, 'address.city') → 'Greater Noida'
- */
-function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((acc, key) => acc?.[key], obj)
+function getNestedValue(obj: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((acc, key) => {
+    if (acc && typeof acc === 'object') {
+      return (acc as Record<string, unknown>)[key]
+    }
+    return undefined
+  }, obj)
 }
 
 /**

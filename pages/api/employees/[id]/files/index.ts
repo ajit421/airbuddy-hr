@@ -20,16 +20,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Missing employee id' })
   }
 
-  // Verify employee exists
-  const employeeRef = adminDb.collection('employees').doc(id)
-  const employeeSnap = await employeeRef.get()
-  if (!employeeSnap.exists) {
-    return res.status(404).json({ error: 'Employee not found' })
-  }
-
   // ── GET — list files ──────────────────────────────────────────────────────
   if (req.method === 'GET') {
     return withAuth(req, res, async () => {
+      // Auth verified — now safe to read Firestore
+      const employeeRef = adminDb.collection('employees').doc(id)
+      const employeeSnap = await employeeRef.get()
+      if (!employeeSnap.exists) {
+        return res.status(404).json({ error: 'Employee not found' })
+      }
+
       try {
         const filesSnap = await employeeRef.collection('files').orderBy('uploadedAt', 'desc').get()
 
@@ -52,8 +52,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
         return res.status(200).json({ files })
-      } catch (err: any) {
-        console.error('[GET files]', err?.message ?? err)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[GET files]', msg)
         return res.status(500).json({ error: 'Failed to fetch files' })
       }
     })
@@ -62,6 +63,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ── POST — upload file ────────────────────────────────────────────────────
   if (req.method === 'POST') {
     return withAuth(req, res, async (uid, email) => {
+      // Auth verified — now safe to read Firestore
+      const employeeRef = adminDb.collection('employees').doc(id)
+      const employeeSnap = await employeeRef.get()
+      if (!employeeSnap.exists) {
+        return res.status(404).json({ error: 'Employee not found' })
+      }
+
       const { fileType, fileName, mimeType, base64Data } = req.body
 
       // Validate required fields
@@ -139,8 +147,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           cloudinaryUrl: url,
           publicId: finalPublicId,
         })
-      } catch (err: any) {
-        console.error('[POST files] Upload error:', err?.message ?? err)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[POST files] Upload error:', msg)
         return res.status(500).json({ error: 'File upload failed. Please try again.' })
       }
     })
@@ -149,6 +158,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ── DELETE — delete a specific file ───────────────────────────────────────
   if (req.method === 'DELETE') {
     return withAuth(req, res, async (uid, email) => {
+      // Auth verified — now safe to read Firestore
+      const employeeRef = adminDb.collection('employees').doc(id)
+      const employeeSnap = await employeeRef.get()
+      if (!employeeSnap.exists) {
+        return res.status(404).json({ error: 'Employee not found' })
+      }
+
       const { fileId } = req.body
       if (!fileId) {
         return res.status(400).json({ error: 'fileId is required' })
@@ -193,8 +209,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
         return res.status(200).json({ success: true })
-      } catch (err: any) {
-        console.error('[DELETE files]', err?.message ?? err)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[DELETE files]', msg)
         return res.status(500).json({ error: 'Failed to delete file' })
       }
     })

@@ -72,8 +72,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }))
 
       return res.status(200).json({ logs, hasMore, nextCursor, pageSize })
-    } catch (err: any) {
-      console.error('[GET /api/audit]', err?.message ?? err)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[GET /api/audit]', msg)
       return res.status(500).json({ error: 'Failed to fetch audit logs.' })
     }
   })

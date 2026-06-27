@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -24,12 +24,17 @@ export function useAuth(): AuthState {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const isSigningInRef = useRef(false)
 
   // Listen to Firebase auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser)
-      setLoading(false)
+      // Delay setting loading to false if we are currently signing in
+      // (the signInWithGoogle function will set loading to false after the session is created)
+      if (!isSigningInRef.current) {
+        setLoading(false)
+      }
     })
     return () => unsubscribe()
   }, [])
@@ -37,6 +42,7 @@ export function useAuth(): AuthState {
   const signInWithGoogle = useCallback(async () => {
     setError(null)
     setLoading(true)
+    isSigningInRef.current = true
     try {
       const provider = new GoogleAuthProvider()
       const result = await signInWithPopup(auth, provider)
@@ -68,9 +74,13 @@ export function useAuth(): AuthState {
         )
       }
 
+      isSigningInRef.current = false
+      setLoading(false)
       router.replace('/dashboard')
-    } catch (err: any) {
-      setError(err.message ?? 'Sign-in failed. Please try again.')
+    } catch (err: unknown) {
+      isSigningInRef.current = false
+      const msg = err instanceof Error ? err.message : 'Sign-in failed. Please try again.'
+      setError(msg)
       setLoading(false)
     }
   }, [router])
@@ -88,3 +98,4 @@ export function useAuth(): AuthState {
 
   return { user, loading, error, signInWithGoogle, signOut }
 }
+

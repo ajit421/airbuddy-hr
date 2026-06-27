@@ -62,9 +62,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log(`[Session] Login success — ${email} (${userData.role})`)
       return res.status(200).json({ status: 'ok' })
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string }
       // Firebase token verification failure
-      if (err?.code?.startsWith('auth/')) {
+      if (firebaseErr?.code?.startsWith('auth/')) {
         return res.status(401).json({ error: 'Invalid or expired ID token.' })
       }
       console.error('[Session] Unexpected error during session creation:', err)

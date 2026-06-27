@@ -11,6 +11,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { withAuth } from '@/lib/api-middleware'
 import { createAuditLog } from '@/lib/audit/logger'
 import { improveDocument } from '@/lib/gemini/improve'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // Extend response timeout — retries can take up to ~8s total
 export const config = {
@@ -28,6 +29,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   return await withAuth(req, res, async (uid, email) => {
+    // M9 — Rate limit: 20 AI calls per 10 minutes per user
+    const { allowed, remaining, resetAt } = checkRateLimit(uid, 20, 10 * 60 * 1000)
+    if (!allowed) {
+      res.setHeader('X-RateLimit-Remaining', '0')
+      res.setHeader('X-RateLimit-Reset', String(Math.ceil(resetAt / 1000)))
+      return res.status(429).json({
+        error: 'Rate limit exceeded. You can make 20 AI improvement requests per 10 minutes.',
+      })
+    }
+    res.setHeader('X-RateLimit-Remaining', String(remaining))
     try {
       const { markdownContent, documentType } = req.body as {
         markdownContent: string
@@ -42,8 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'documentType is required.' })
       }
 
-      // ── Call Gemini (with auto-retry + fallback) ────────────────────────────
-      const { success, improvedMarkdown, modelUsed, error } = await improveDocument(
+      const { success, improvedMarkdown, modelUsed } = await improveDocument(
         markdownContent,
         documentType
       )

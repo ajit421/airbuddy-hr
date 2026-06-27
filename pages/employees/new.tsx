@@ -1,9 +1,10 @@
+/* eslint-disable react-hooks/incompatible-library */
 // pages/employees/new.tsx
 // Create employee form — react-hook-form + zod validation
 
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { useForm } from 'react-hook-form'
+import { useForm, Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import AppLayout from '@/components/layout/AppLayout'
@@ -113,7 +114,7 @@ function FormSelect({
   placeholder?: string
 }) {
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select value={value} onValueChange={(v: string | null) => onValueChange(v ?? '')}>
       <SelectTrigger className="bg-[#0f1117] border-white/[0.08] text-slate-100 focus:ring-indigo-500/50">
         <SelectValue placeholder={placeholder ?? 'Select…'} />
       </SelectTrigger>
@@ -141,8 +142,7 @@ export default function NewEmployeePage() {
     watch,
     formState: { errors },
   } = useForm<EmployeeFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(employeeSchema) as any,
+    resolver: zodResolver(employeeSchema) as unknown as Resolver<EmployeeFormData>,
     defaultValues: { status: 'full-time' },
   })
 
@@ -189,8 +189,9 @@ export default function NewEmployeePage() {
 
       toast.success(`Employee ${json.employeeId} created successfully!`)
       router.push(`/employees/${json.id}`)
-    } catch (err: any) {
-      toast.error(err.message ?? 'Something went wrong')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong'
+      toast.error(msg)
       setSubmitting(false)
     }
   }
@@ -236,7 +237,7 @@ export default function NewEmployeePage() {
             <Field label="Gender" error={errors.gender?.message}>
               <FormSelect
                 value={watch('gender') ?? ''}
-                onValueChange={(v) => setValue('gender', v as any)}
+                onValueChange={(v) => setValue('gender', v as EmployeeFormData['gender'])}
                 options={[
                   { value: 'male', label: 'Male' },
                   { value: 'female', label: 'Female' },
@@ -268,7 +269,7 @@ export default function NewEmployeePage() {
             <Field label="Status" required error={errors.status?.message}>
               <FormSelect
                 value={watch('status') ?? 'full-time'}
-                onValueChange={(v) => setValue('status', v as any)}
+                onValueChange={(v) => setValue('status', v as EmployeeFormData['status'])}
                 options={[
                   { value: 'full-time',  label: 'Full-Time' },
                   { value: 'intern',     label: 'Intern' },
@@ -323,7 +324,7 @@ export default function NewEmployeePage() {
             <Field label="Account Type" error={errors.accountType?.message}>
               <FormSelect
                 value={watch('accountType') ?? ''}
-                onValueChange={(v) => setValue('accountType', v as any)}
+                onValueChange={(v) => setValue('accountType', v as EmployeeFormData['accountType'])}
                 options={[
                   { value: 'savings', label: 'Savings' },
                   { value: 'current', label: 'Current' },

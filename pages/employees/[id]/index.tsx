@@ -1,10 +1,11 @@
+/* eslint-disable react-hooks/incompatible-library */
 // pages/employees/[id]/index.tsx
 // Employee detail page — read/edit toggle, tabs: Overview | Files | Documents
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
+import { useForm, Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import AppLayout from '@/components/layout/AppLayout'
@@ -27,7 +28,7 @@ import { DEPARTMENTS } from '@/constants/departments'
 import { getDocumentTypeLabel } from '@/constants/document-types'
 import type { Employee, EmployeeStatus } from '@/types/employee'
 import type { DocumentRecord } from '@/types/document'
-import type { FileType } from '@/types/api'
+import type { FileType, EmployeeFile } from '@/types/api'
 import FileUploadZone from '@/components/employees/FileUploadZone'
 import OCRReviewForm from '@/components/employees/OCRReviewForm'
 import VersionHistoryList from '@/components/documents/VersionHistoryList'
@@ -107,7 +108,7 @@ function ESelect({ value, onValueChange, options, placeholder }: {
   options: Array<{ value: string; label: string }>; placeholder?: string
 }) {
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select value={value} onValueChange={(v: string | null) => onValueChange(v ?? '')}>
       <SelectTrigger className={`${inputCls} w-full`}>
         <SelectValue placeholder={placeholder ?? 'Select…'} />
       </SelectTrigger>
@@ -131,12 +132,12 @@ export default function EmployeeDetailPage() {
   const [deleting, setDeleting] = useState(false)
 
   // Files tab state
-  const [files, setFiles] = useState<any[]>([])
+  const [files, setFiles] = useState<EmployeeFile[]>([])
   const [filesLoading, setFilesLoading] = useState(false)
   const [ocrReview, setOcrReview] = useState<{
     fileId: string
     fileType: FileType
-    data: Record<string, any>
+    data: Record<string, unknown>
   } | null>(null)
 
   // Documents tab state
@@ -145,7 +146,7 @@ export default function EmployeeDetailPage() {
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null)
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } =
-    useForm<EditFormData>({ resolver: zodResolver(editSchema) as any })
+    useForm<EditFormData>({ resolver: zodResolver(editSchema) as unknown as Resolver<EditFormData> })
 
   // Fetch files for this employee
   const fetchFiles = useCallback(async () => {
@@ -191,6 +192,7 @@ export default function EmployeeDetailPage() {
     // Also fetch files and documents for their respective tabs
     fetchFiles()
     fetchDocuments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, fetchFiles, fetchDocuments])
 
   function populateForm(emp: Employee) {
@@ -251,8 +253,9 @@ export default function EmployeeDetailPage() {
       setEmployee(fresh.employee)
       setEditMode(false)
       toast.success('Employee updated successfully')
-    } catch (err: any) {
-      toast.error(err.message ?? 'Update failed')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Update failed'
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -266,8 +269,9 @@ export default function EmployeeDetailPage() {
       if (!res.ok) throw new Error((await res.json()).error)
       toast.success('Employee deleted')
       router.push('/employees')
-    } catch (err: any) {
-      toast.error(err.message ?? 'Delete failed')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Delete failed'
+      toast.error(msg)
       setDeleting(false)
     }
   }
@@ -388,7 +392,7 @@ export default function EmployeeDetailPage() {
                       <Input {...register('dateOfBirth')} type="date" className={`${inputCls} [color-scheme:dark]`} />
                     </EditInput>
                     <EditInput label="Gender">
-                      <ESelect value={watch('gender') ?? ''} onValueChange={(v) => setValue('gender', v as any)}
+                      <ESelect value={watch('gender') ?? ''} onValueChange={(v) => setValue('gender', v as EditFormData['gender'])}
                         options={[{value:'male',label:'Male'},{value:'female',label:'Female'},{value:'other',label:'Other'}]} />
                     </EditInput>
                   </div>
@@ -408,7 +412,7 @@ export default function EmployeeDetailPage() {
                       <Input {...register('joiningDate')} type="date" className={`${inputCls} [color-scheme:dark]`} />
                     </EditInput>
                     <EditInput label="Status *" error={errors.status?.message}>
-                      <ESelect value={watch('status') ?? 'full-time'} onValueChange={(v) => setValue('status', v as any)}
+                      <ESelect value={watch('status') ?? 'full-time'} onValueChange={(v) => setValue('status', v as EditFormData['status'])}
                         options={[
                           {value:'full-time',label:'Full-Time'},{value:'intern',label:'Intern'},
                           {value:'contract',label:'Contract'},{value:'resigned',label:'Resigned'},
@@ -448,7 +452,7 @@ export default function EmployeeDetailPage() {
                     <EditInput label="Account Number"><Input {...register('accountNumber')} className={inputCls} /></EditInput>
                     <EditInput label="IFSC Code"><Input {...register('ifscCode')} className={`${inputCls} uppercase`} /></EditInput>
                     <EditInput label="Account Type">
-                      <ESelect value={watch('accountType') ?? ''} onValueChange={(v) => setValue('accountType', v as any)}
+                      <ESelect value={watch('accountType') ?? ''} onValueChange={(v) => setValue('accountType', v as EditFormData['accountType'])}
                         options={[{value:'savings',label:'Savings'},{value:'current',label:'Current'}]} />
                     </EditInput>
                   </div>

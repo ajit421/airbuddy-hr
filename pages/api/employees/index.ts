@@ -20,19 +20,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .where('isDeleted', '==', false)
           .get()
 
+        interface SimpleEmployee {
+          createdAt?: {
+            _seconds?: number
+            seconds?: number
+          }
+        }
+
         const employees = snap.docs
           .map((doc) => ({ id: doc.id, ...doc.data() }))
           // Sort newest first using Firestore Timestamp _seconds field
-          .sort((a: any, b: any) => {
-            const aTs = a.createdAt?._seconds ?? a.createdAt?.seconds ?? 0
-            const bTs = b.createdAt?._seconds ?? b.createdAt?.seconds ?? 0
+          .sort((a, b) => {
+            const aEmp = a as SimpleEmployee
+            const bEmp = b as SimpleEmployee
+            const aTs = aEmp.createdAt?._seconds ?? aEmp.createdAt?.seconds ?? 0
+            const bTs = bEmp.createdAt?._seconds ?? bEmp.createdAt?.seconds ?? 0
             return bTs - aTs
           })
 
         return res.status(200).json({ employees })
-      } catch (err: any) {
-        console.error('[GET /api/employees] Firestore error:', err?.message ?? err)
-        return res.status(500).json({ error: 'Failed to fetch employees', detail: err?.message })
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[GET /api/employees] Firestore error:', msg)
+        return res.status(500).json({ error: 'Failed to fetch employees', detail: msg })
       }
     })
   }
@@ -44,11 +54,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Missing required fields: fullName, email, department, designation, status' })
       }
 
+      // Whitelist only expected employee fields — prevents mass assignment
+      const {
+        fullName,
+        email: empEmail,
+        department,
+        designation,
+        status,
+        phone,
+        dateOfBirth,
+        dateOfJoining,
+        address,
+        panNumber,
+        aadhaarNumber,
+        fatherName,
+        bankAccountNumber,
+        bankName,
+        bankIFSC,
+        emergencyContactName,
+        emergencyContactPhone,
+        notes,
+      } = body
+
       const employeeId = await generateEmployeeId()
       const now = FieldValue.serverTimestamp()
 
       const employeeData = {
-        ...body,
+        fullName,
+        email: empEmail,
+        department,
+        designation,
+        status,
+        // Optional fields (undefined values are omitted by Firestore automatically)
+        ...(phone !== undefined && { phone }),
+        ...(dateOfBirth !== undefined && { dateOfBirth }),
+        ...(dateOfJoining !== undefined && { dateOfJoining }),
+        ...(address !== undefined && { address }),
+        ...(panNumber !== undefined && { panNumber }),
+        ...(aadhaarNumber !== undefined && { aadhaarNumber }),
+        ...(fatherName !== undefined && { fatherName }),
+        ...(bankAccountNumber !== undefined && { bankAccountNumber }),
+        ...(bankName !== undefined && { bankName }),
+        ...(bankIFSC !== undefined && { bankIFSC }),
+        ...(emergencyContactName !== undefined && { emergencyContactName }),
+        ...(emergencyContactPhone !== undefined && { emergencyContactPhone }),
+        ...(notes !== undefined && { notes }),
+        // System-controlled fields — never accept from client
         employeeId,
         isDeleted: false,
         deletedAt: null,
@@ -67,7 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         entityId: docRef.id,
         performedBy: uid,
         performedByEmail: email,
-        metadata: { employeeId, fullName: body.fullName },
+        metadata: { employeeId, fullName },
       })
 
       return res.status(201).json({ id: docRef.id, employeeId })

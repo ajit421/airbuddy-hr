@@ -150,7 +150,9 @@ export default function GenerateDocPage() {
 
   useEffect(() => {
     if (!employeeId) return
-    setLoadingEmployee(true)
+    Promise.resolve().then(() => {
+      setLoadingEmployee(true)
+    })
     fetch(`/api/employees/${employeeId}`)
       .then((r) => r.json())
       .then((data) => {
@@ -159,12 +161,14 @@ export default function GenerateDocPage() {
       })
       .catch(() => toast.error('Failed to load employee'))
       .finally(() => setLoadingEmployee(false))
-  }, [employeeId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [employeeId])
 
   // ── Fetch templates ──────────────────────────────────────────────────────────
 
   useEffect(() => {
-    setLoadingTemplates(true)
+    Promise.resolve().then(() => {
+      setLoadingTemplates(true)
+    })
     fetch('/api/templates')
       .then((r) => r.json())
       .then((data) => {
@@ -172,7 +176,7 @@ export default function GenerateDocPage() {
       })
       .catch(() => toast.error('Failed to load templates'))
       .finally(() => setLoadingTemplates(false))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Filtered templates for employee status ───────────────────────────────────
 

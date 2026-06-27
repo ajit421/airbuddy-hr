@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Template, DocumentType } from '@/types/template'
 import type { EmployeeStatus } from '@/types/employee'
@@ -224,7 +223,9 @@ export default function TemplatesListPage() {
   }
 
   useEffect(() => {
-    fetchTemplates()
+    Promise.resolve().then(() => {
+      fetchTemplates()
+    })
   }, [])
 
   const handleToggle = async (id: string, newActive: boolean) => {

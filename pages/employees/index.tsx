@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -133,7 +132,7 @@ export default function EmployeesListPage() {
               className="pl-9 bg-[#13161e] border-white/[0.08] text-slate-100 placeholder:text-slate-500 focus-visible:ring-indigo-500/50"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v: string | null) => setStatusFilter(v ?? '')}>
             <SelectTrigger id="status-filter" className="w-[160px] bg-[#13161e] border-white/[0.08] text-slate-300">
               <SelectValue />
             </SelectTrigger>

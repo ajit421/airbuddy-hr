@@ -54,11 +54,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         seeded: true,
         count: result.count,
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
       console.error('[POST /api/admin/seed]', err)
       return res.status(500).json({
         error: 'Seed failed.',
-        detail: err?.message ?? String(err),
+        detail: msg,
       })
     }
   })
