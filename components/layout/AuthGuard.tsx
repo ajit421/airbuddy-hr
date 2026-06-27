@@ -1,4 +1,6 @@
-'use client'
+// components/layout/AuthGuard.tsx
+// Wraps pages that require authentication. Redirects to /login if not signed in.
+// Note: "use client" is App Router only — not needed here (Pages Router project).
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'

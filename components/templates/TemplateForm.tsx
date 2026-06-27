@@ -28,7 +28,7 @@ import {
   COMPUTED_VARIABLES,
 } from '@/constants/variable-registry'
 import { extractVariables } from '@/lib/templates/extract-variables'
-import { Save, ChevronRight, Variable, User, Building2, CalendarDays, Info } from 'lucide-react'
+import { Save, Variable, User, Building2, CalendarDays, Info } from 'lucide-react'
 
 // Lazy-load the markdown editor to avoid SSR issues
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false })
@@ -193,8 +193,9 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
 
       toast.success(mode === 'create' ? 'Template created!' : 'Template updated!')
       router.push('/templates')
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to save template.')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save template.'
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -231,7 +232,7 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
             <Label htmlFor="tmpl-type" className="text-slate-300 text-xs">
               Document Type <span className="text-red-400">*</span>
             </Label>
-            <Select value={type} onValueChange={(v) => setType(v as DocumentType)}>
+            <Select value={type} onValueChange={(v: string | null) => setType((v ?? type) as DocumentType)}>
               <SelectTrigger
                 id="tmpl-type"
                 className="bg-[#0e1017] border-white/[0.08] text-slate-300"

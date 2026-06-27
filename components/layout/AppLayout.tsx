@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/hooks/useAuth'
@@ -52,9 +53,11 @@ function SidebarContent() {
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/[0.06]">
         {/* Logo — drop at public/logo.png */}
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white shadow-md shrink-0 p-1">
-          <img
+          <Image
             src="/logo.png"
             alt="AirBuddy"
+            width={24}
+            height={24}
             className="w-full h-full object-contain"
           />
         </div>

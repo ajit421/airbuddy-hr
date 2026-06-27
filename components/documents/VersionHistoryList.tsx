@@ -279,7 +279,9 @@ export default function VersionHistoryList({
   }, [employeeId, documentId])
 
   useEffect(() => {
-    fetchVersions()
+    Promise.resolve().then(() => {
+      fetchVersions()
+    })
   }, [fetchVersions])
 
   return (
