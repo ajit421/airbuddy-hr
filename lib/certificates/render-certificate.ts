@@ -1,9 +1,12 @@
 // lib/certificates/render-certificate.ts
-// Server-side certificate rendering: background PNG + text overlay → PNG Buffer.
+// Server-side certificate rendering: background PNG + text overlay → PDF Buffer.
 //
-// Uses:
-//   @napi-rs/canvas  — Canvas 2D API for text measurement + drawing
-//   sharp            — already installed, used indirectly via downloadBuffer
+// Pipeline:
+//   1. Download background PNG from Cloudinary (backgroundImageUrl)
+//   2. @napi-rs/canvas — composite text fields + wrapped body paragraph on top
+//   3. Export canvas as PNG buffer
+//   4. pdf-lib — embed the PNG into a correctly sized single-page PDF
+//   5. Return PDF buffer (the PNG is never exposed to the client)
 //
 // Constraints:
 //   - No browser / Puppeteer / HTML rendering
@@ -12,6 +15,7 @@
 
 import path from 'path'
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas'
+import { PDFDocument } from 'pdf-lib'
 import type { CertificateTemplate } from '@/types/template'
 import { downloadBuffer } from '@/lib/cloudinary/storage-helpers'
 
@@ -49,8 +53,7 @@ function fillTemplate(template: string, data: Record<string, string>): string {
 
 /**
  * Wrap text into lines of at most maxCharsPerLine characters.
- * Breaks only at word boundaries. If a single word exceeds maxCharsPerLine
- * it is placed on its own line.
+ * Breaks only at word boundaries.
  */
 function wordWrap(text: string, maxCharsPerLine: number): string[] {
   const words = text.split(/\s+/)
@@ -71,49 +74,33 @@ function wordWrap(text: string, maxCharsPerLine: number): string[] {
   return lines
 }
 
-// ── Main render function ──────────────────────────────────────────────────
+// ── PNG compositing ───────────────────────────────────────────────────────
 
-/**
- * Render a certificate by overlaying text fields onto a background PNG.
- *
- * @param template  CertificateTemplate config from Firestore
- * @param data      Map of variable names → values (e.g. { full_name: 'Aarush Bhagat', ... })
- * @returns PNG Buffer ready to stream to the client
- */
-export async function renderCertificate(
+async function compositeToPNG(
   template: CertificateTemplate,
   data: Record<string, string>
 ): Promise<Buffer> {
   ensureFonts()
 
-  // ── 1. Load background image ───────────────────────────────────────────
-  let backgroundBuffer: Buffer
-
-  if (template.backgroundImageUrl) {
-    backgroundBuffer = await downloadBuffer(template.backgroundImageUrl)
-  } else {
-    // Fallback: create a blank white canvas if no background uploaded yet
-    console.warn('[renderCertificate] No backgroundImageUrl set — using blank canvas')
-    backgroundBuffer = Buffer.alloc(0)
-  }
-
   const { imageWidth: W, imageHeight: H } = template
-
-  // ── 2. Create canvas and draw background ──────────────────────────────
   const canvas = createCanvas(W, H)
   const ctx = canvas.getContext('2d')
 
-  if (backgroundBuffer.length > 0) {
-    const bgImage = await loadImage(backgroundBuffer)
+  // 1. Draw background
+  if (template.backgroundImageUrl) {
+    const bgBuffer = await downloadBuffer(template.backgroundImageUrl)
+    const bgImage = await loadImage(bgBuffer)
     ctx.drawImage(bgImage, 0, 0, W, H)
   } else {
+    // Blank white canvas if no background uploaded yet
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, W, H)
   }
 
-  // ── 3. Draw individual text fields ────────────────────────────────────
+  // 2. Draw individual text fields (name, designation, date, etc.)
   for (const field of template.textFields) {
-    const value = fillTemplate(data[field.key] ?? '', data)
+    const rawValue = data[field.key] ?? ''
+    const value = fillTemplate(rawValue, data)
     if (!value) continue
 
     const weight = field.fontWeight === 'bold' ? 'bold' : 'normal'
@@ -133,7 +120,7 @@ export async function renderCertificate(
     }
   }
 
-  // ── 4. Draw word-wrapped body paragraph ───────────────────────────────
+  // 3. Draw word-wrapped body paragraph
   if (template.bodyTemplate && template.bodyBox) {
     const box = template.bodyBox
     const filledBody = fillTemplate(template.bodyTemplate, data)
@@ -150,6 +137,53 @@ export async function renderCertificate(
     }
   }
 
-  // ── 5. Export as PNG Buffer ────────────────────────────────────────────
   return canvas.toBuffer('image/png') as unknown as Buffer
+}
+
+// ── PNG → PDF conversion ─────────────────────────────────────────────────
+
+async function pngToPdf(pngBuffer: Buffer, widthPx: number, heightPx: number): Promise<Buffer> {
+  // Convert pixel dimensions to PDF points (1 px ≈ 0.75 pt at 96 DPI)
+  // pdf-lib uses points (1/72 inch). At 96 DPI: 1 px = 72/96 pt = 0.75 pt
+  const widthPt = widthPx * 0.75
+  const heightPt = heightPx * 0.75
+
+  const pdfDoc = await PDFDocument.create()
+  const page = pdfDoc.addPage([widthPt, heightPt])
+
+  const pngImage = await pdfDoc.embedPng(pngBuffer)
+
+  page.drawImage(pngImage, {
+    x: 0,
+    y: 0,
+    width: widthPt,
+    height: heightPt,
+  })
+
+  const pdfBytes = await pdfDoc.save()
+  return Buffer.from(pdfBytes)
+}
+
+// ── Main export ───────────────────────────────────────────────────────────
+
+/**
+ * Render a certificate by overlaying text fields onto a background PNG,
+ * then wrapping the result in a single-page PDF.
+ *
+ * @param template  CertificateTemplate config from Firestore
+ * @param data      Map of variable names → filled values
+ *                  (produced by resolveVariableMap() in generate.ts)
+ * @returns PDF Buffer ready to stream to the client
+ */
+export async function renderCertificatePdf(
+  template: CertificateTemplate,
+  data: Record<string, string>
+): Promise<Buffer> {
+  // Step 1-3: Composite PNG
+  const pngBuffer = await compositeToPNG(template, data)
+
+  // Step 4: Convert PNG → single-page PDF
+  const pdfBuffer = await pngToPdf(pngBuffer, template.imageWidth, template.imageHeight)
+
+  return pdfBuffer
 }

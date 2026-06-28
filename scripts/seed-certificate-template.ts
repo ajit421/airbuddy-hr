@@ -44,13 +44,13 @@ const certificateTemplate = {
   name: 'Internship Certificate',
   type: 'certificate',
   description: 'Certificate of Internship — image overlay on branded background PNG.',
-  markdownContent: '',
+  markdownContent: BODY_TEMPLATE,
   variables: [
     'full_name', 'designation', 'relation_type', 'parent_name', 'degree',
     'institute_name', 'company_name', 'joining_date', 'end_date', 'department',
     'pronoun', 'pronoun_object', 'current_date',
   ],
-  applicableStatus: ['intern', 'full-time', 'contract'],
+  applicableStatus: ['intern'],
   isActive: true,
   isDefault: true,
 

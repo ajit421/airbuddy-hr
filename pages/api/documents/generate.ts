@@ -8,9 +8,9 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { withAuth } from '@/lib/api-middleware'
 import { adminDb } from '@/lib/firebase/admin'
 import { createAuditLog } from '@/lib/audit/logger'
-import { fillVariables } from '@/lib/templates/fill-variables'
+import { fillVariables, resolveVariableMap } from '@/lib/templates/fill-variables'
 import type { Employee } from '@/types/employee'
-import type { Template } from '@/types/template'
+import type { Template, CertificateTemplate } from '@/types/template'
 import type { CompanySettings } from '@/types/settings'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -88,6 +88,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
       // ── 7. Create version v1 ──────────────────────────────────────────────
+      // For certificate templates: build and persist the full variable map so
+      // the PDF export route can retrieve it later for image-overlay rendering.
+      const versionDoc: Record<string, unknown> = {
+        versionNumber: 1,
+        markdownContent,
+        exportedAs: null,
+        exportStoragePath: null,
+        hasSigned: false,
+        signedAt: null,
+        aiImproved: false,
+        changeNote: 'Initial generation from template',
+        createdAt: now,
+        createdBy: uid,
+      }
+
+      if (template.type === 'certificate') {
+        const certTemplate = template as unknown as CertificateTemplate
+        const allVarKeys = certTemplate.variables ?? []
+        const certData = resolveVariableMap(allVarKeys, employee, settings, customVariables)
+        versionDoc.certificateData = certData
+      }
+
       await adminDb
         .collection('employees')
         .doc(employeeId)
@@ -95,18 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .doc(documentRef.id)
         .collection('versions')
         .doc('v1')
-        .set({
-          versionNumber: 1,
-          markdownContent,
-          exportedAs: null,
-          exportStoragePath: null,
-          hasSigned: false,
-          signedAt: null,
-          aiImproved: false,
-          changeNote: 'Initial generation from template',
-          createdAt: now,
-          createdBy: uid,
-        })
+        .set(versionDoc)
 
       // ── 8. Audit log ──────────────────────────────────────────────────────
       await createAuditLog({

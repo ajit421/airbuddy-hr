@@ -17,7 +17,9 @@ import { adminDb } from '@/lib/firebase/admin'
 import { createAuditLog } from '@/lib/audit/logger'
 import { downloadBuffer, uploadBuffer } from '@/lib/cloudinary/storage-helpers'
 import { HRPdfDocument } from '@/lib/export/pdf-renderer'
+import { renderCertificatePdf } from '@/lib/certificates/render-certificate'
 import { generateFileName } from '@/lib/export/file-naming'
+import type { CertificateTemplate } from '@/types/template'
 import { format } from 'date-fns'
 import React from 'react'
 import type { DocumentProps } from '@react-pdf/renderer'
@@ -42,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         versionId,
         addSignature = false,
         documentTitle,
+        documentType,
       } = req.body as {
         markdownContent: string
         employeeId: string
@@ -49,6 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         versionId: string
         addSignature: boolean
         documentTitle: string
+        documentType?: string
       }
 
       if (!markdownContent || !employeeId || !documentId || !versionId || !documentTitle) {
@@ -76,18 +80,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const dateStr = format(new Date(), 'dd/MM/yyyy')
 
       // ── 3. Render PDF ────────────────────────────────────────────────────
-      let pdfBuffer = await renderToBuffer(
-        React.createElement(HRPdfDocument, {
-          companyName,
-          documentTitle,
-          markdownContent,
-          dateStr,
-        }) as React.ReactElement<DocumentProps>
-      )
+      let pdfBuffer: Buffer
+
+      if (documentType === 'certificate') {
+        // ── Certificate: image-compositing path ────────────────────────────
+        // Fetch certificateData (the variable map stored at generate time)
+        const versionRef2 = adminDb
+          .collection('employees')
+          .doc(employeeId)
+          .collection('documents')
+          .doc(documentId)
+          .collection('versions')
+          .doc(versionId)
+        const vSnap = await versionRef2.get()
+        const certData = (vSnap.data()?.certificateData ?? {}) as Record<string, string>
+
+        // Fetch the template to get the render config
+        const docRef = await adminDb
+          .collection('employees')
+          .doc(employeeId)
+          .collection('documents')
+          .doc(documentId)
+          .get()
+        const templateId = docRef.data()?.templateId as string | undefined
+        if (!templateId) {
+          return res.status(400).json({ error: 'Certificate template ID not found on document.' })
+        }
+        const tplSnap = await adminDb.collection('templates').doc(templateId).get()
+        if (!tplSnap.exists) {
+          return res.status(404).json({ error: 'Certificate template not found.' })
+        }
+        const certTemplate = { id: tplSnap.id, ...tplSnap.data() } as unknown as CertificateTemplate
+
+        pdfBuffer = await renderCertificatePdf(certTemplate, certData)
+
+      } else {
+        // ── Standard markdown path ─────────────────────────────────────────
+        pdfBuffer = await renderToBuffer(
+          React.createElement(HRPdfDocument, {
+            companyName,
+            documentTitle,
+            markdownContent,
+            dateStr,
+          }) as React.ReactElement<DocumentProps>
+        )
+      }
 
       // ── 4. Optional signature overlay with pdf-lib ───────────────────────
       let hasSigned = false
-      if (addSignature && settings.signatureStoragePath) {
+      if (documentType !== 'certificate' && addSignature && settings.signatureStoragePath) {
         try {
           // signatureStoragePath stores the direct Cloudinary HTTPS URL
           // (uploaded with type:'upload' / public delivery — downloadable directly).

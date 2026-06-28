@@ -137,3 +137,61 @@ export function fillVariables(
   return { result, missing: [...new Set(missing)] }
 }
 
+/**
+ * Resolve a list of variable keys to their string values.
+ * Returns a map of { varName → resolved value }. Variables that cannot be
+ * resolved (missing or empty) are omitted. Override values take precedence
+ * over anything auto-resolved from employee / settings.
+ *
+ * Used to capture the full variable snapshot for certificate rendering,
+ * where the individual values are needed at export time (not just the
+ * substituted body paragraph).
+ */
+export function resolveVariableMap(
+  variableKeys: string[],
+  employee: Employee,
+  settings: CompanySettings,
+  overrides: Record<string, string> = {}
+): Record<string, string> {
+  const result: Record<string, string> = {}
+
+  for (const varName of variableKeys) {
+    // Overrides (custom variables from HR input) take priority
+    if (overrides[varName] !== undefined && overrides[varName] !== '') {
+      result[varName] = overrides[varName]
+      continue
+    }
+
+    const fieldPath = VARIABLE_REGISTRY[varName]
+    if (!fieldPath) continue
+
+    let value: string | undefined
+    if (fieldPath.startsWith('__computed.')) {
+      const computedKey = fieldPath.replace('__computed.', '')
+      value = computeValue(computedKey) || undefined
+    } else if (fieldPath.startsWith('__settings.')) {
+      const settingsKey = fieldPath.replace('__settings.', '')
+      const raw = getNestedValue(settings, settingsKey)
+      value = raw != null && raw !== '' ? String(raw) : undefined
+    } else {
+      const raw = getNestedValue(employee, fieldPath)
+      if (varName === 'salary' && typeof raw === 'number') {
+        value = raw.toLocaleString('en-IN')
+      } else {
+        value = raw != null && raw !== '' ? String(raw) : undefined
+      }
+    }
+
+    if (value) result[varName] = value
+  }
+
+  // Also include any overrides for keys not in the registry
+  // (certificate-only vars like relation_type, parent_name, etc.)
+  for (const [key, val] of Object.entries(overrides)) {
+    if (val !== undefined && val !== '') {
+      result[key] = val
+    }
+  }
+
+  return result
+}
