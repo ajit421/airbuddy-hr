@@ -14,10 +14,11 @@
 //   - Fonts must be registered before use (done via GlobalFonts.registerFromPath)
 
 import path from 'path'
-import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas'
+import { createCanvas, GlobalFonts, loadImage, type SKRSContext2D } from '@napi-rs/canvas'
 import { PDFDocument } from 'pdf-lib'
 import type { CertificateTemplate } from '@/types/template'
 import { downloadBuffer } from '@/lib/cloudinary/storage-helpers'
+import { parse, parseISO, isValid, format as formatDate } from 'date-fns'
 
 // ── Font registration (runs once per process) ─────────────────────────────
 const FONTS_DIR = path.join(process.cwd(), 'public', 'fonts')
@@ -52,33 +53,79 @@ function fillTemplate(template: string, data: Record<string, string>): string {
 // ── Word wrap ─────────────────────────────────────────────────────────────
 
 /**
- * Wrap text into lines of at most maxCharsPerLine characters.
+ * Wrap text into lines based on canvas text width measurement.
  * Breaks only at word boundaries.
  */
-function wordWrap(text: string, maxCharsPerLine: number): string[] {
-  const words = text.split(/\s+/)
+function wordWrapByWidth(text: string, maxWidth: number, ctx: SKRSContext2D): string[] {
+  const words = text.trim().split(/\s+/)
   const lines: string[] = []
-  let current = ''
+  let currentLine = ''
 
   for (const word of words) {
-    if (current === '') {
-      current = word
-    } else if (current.length + 1 + word.length <= maxCharsPerLine) {
-      current += ' ' + word
+    const testLine = currentLine ? currentLine + ' ' + word : word
+    const testWidth = ctx.measureText(testLine).width
+    if (testWidth <= maxWidth) {
+      currentLine = testLine
     } else {
-      lines.push(current)
-      current = word
+      if (currentLine) {
+        lines.push(currentLine)
+      }
+      currentLine = word
     }
   }
-  if (current) lines.push(current)
+  if (currentLine) {
+    lines.push(currentLine)
+  }
   return lines
+}
+
+/**
+ * Format any input date string to standard DD/MM/YYYY format.
+ */
+function formatToDDMMYYYY(dateStr: string | undefined): string | undefined {
+  if (!dateStr) return undefined
+  const trimmed = dateStr.trim()
+  if (!trimmed) return trimmed
+
+  // Try parsing as ISO first (e.g. 2026-06-11 or ISO timestamp)
+  let date = parseISO(trimmed)
+  if (isValid(date)) {
+    return formatDate(date, 'dd/MM/yyyy')
+  }
+
+  // Try parsing as dd/MM/yyyy
+  date = parse(trimmed, 'dd/MM/yyyy', new Date())
+  if (isValid(date)) {
+    return formatDate(date, 'dd/MM/yyyy')
+  }
+
+  // Try parsing as dd.MM.yyyy (e.g. 21.06.2026)
+  date = parse(trimmed, 'dd.MM.yyyy', new Date())
+  if (isValid(date)) {
+    return formatDate(date, 'dd/MM/yyyy')
+  }
+
+  // Try parsing as dd MMMM yyyy (e.g. 28 June 2026)
+  date = parse(trimmed, 'dd MMMM yyyy', new Date())
+  if (isValid(date)) {
+    return formatDate(date, 'dd/MM/yyyy')
+  }
+
+  // Fallback: try standard JavaScript Date parsing
+  const fallbackDate = new Date(trimmed)
+  if (isValid(fallbackDate)) {
+    return formatDate(fallbackDate, 'dd/MM/yyyy')
+  }
+
+  return dateStr
 }
 
 // ── PNG compositing ───────────────────────────────────────────────────────
 
 async function compositeToPNG(
   template: CertificateTemplate,
-  data: Record<string, string>
+  data: Record<string, string>,
+  bodyOverride?: string
 ): Promise<Buffer> {
   ensureFonts()
 
@@ -121,19 +168,69 @@ async function compositeToPNG(
   }
 
   // 3. Draw word-wrapped body paragraph
-  if (template.bodyTemplate && template.bodyBox) {
+  if (template.bodyBox) {
     const box = template.bodyBox
-    const filledBody = fillTemplate(template.bodyTemplate, data)
-    const lines = wordWrap(filledBody, box.maxCharsPerLine)
+    const filledBody = bodyOverride || (template.bodyTemplate ? fillTemplate(template.bodyTemplate, data) : '')
 
     ctx.font = `normal ${box.fontSize}px Montserrat`
     ctx.fillStyle = box.color
     ctx.textBaseline = 'alphabetic'
-    ctx.textAlign = 'center'
 
-    for (let i = 0; i < lines.length; i++) {
-      const lineY = box.y + i * box.lineHeight
-      ctx.fillText(lines[i], box.x, lineY)
+    // Determine the box's max pixel width based on maxCharsPerLine and average character width of actual text
+    const cleanBody = filledBody.replace(/\r?\n/g, ' ')
+    const avgCharWidth = ctx.measureText(cleanBody).width / (cleanBody.length > 0 ? cleanBody.length : 10)
+    const maxWidth = avgCharWidth * (box.maxCharsPerLine || 95)
+
+    // Split the body into paragraphs by newline and wrap each one
+    const paragraphs = filledBody.split(/\r?\n/).filter(p => p.trim() !== '')
+    const paragraphLines = paragraphs.map(p => wordWrapByWidth(p, maxWidth, ctx))
+
+    const xLeft = box.x - maxWidth / 2
+    let currentY = box.y
+
+    for (let pIdx = 0; pIdx < paragraphLines.length; pIdx++) {
+      const lines = paragraphLines[pIdx]
+      if (lines.length === 0) continue
+
+      for (let i = 0; i < lines.length; i++) {
+        const isLastLine = i === lines.length - 1
+
+        if (isLastLine) {
+          // Draw last line left-aligned
+          ctx.textAlign = 'left'
+          ctx.fillText(lines[i], xLeft, currentY)
+        } else {
+          const words = lines[i].split(/\s+/)
+          if (words.length <= 1) {
+            // Fallback if line has only 1 word
+            ctx.textAlign = 'left'
+            ctx.fillText(lines[i], xLeft, currentY)
+          } else {
+            // Justified text drawing
+            const wordsWidths = words.map(w => ctx.measureText(w).width)
+            const totalWordsWidth = wordsWidths.reduce((sum, w) => sum + w, 0)
+            const extraSpace = maxWidth - totalWordsWidth
+            const gapWidth = extraSpace / (words.length - 1)
+
+            ctx.textAlign = 'left'
+            let currentX = xLeft
+            for (let j = 0; j < words.length; j++) {
+              ctx.fillText(words[j], currentX, currentY)
+              currentX += wordsWidths[j] + gapWidth
+            }
+          }
+        }
+
+        // Advance Y for the next line in the paragraph
+        if (i < lines.length - 1) {
+          currentY += box.lineHeight
+        }
+      }
+
+      // Add vertical gap between paragraphs
+      if (pIdx < paragraphLines.length - 1) {
+        currentY += box.lineHeight * 1.25
+      }
     }
   }
 
@@ -177,10 +274,23 @@ async function pngToPdf(pngBuffer: Buffer, widthPx: number, heightPx: number): P
  */
 export async function renderCertificatePdf(
   template: CertificateTemplate,
-  data: Record<string, string>
+  data: Record<string, string>,
+  bodyOverride?: string
 ): Promise<Buffer> {
+  // Format specific date fields for the certificate standard (dd/MM/yyyy)
+  const formattedData = { ...data }
+  const dateKeys = ['joining_date', 'end_date', 'current_date']
+  for (const key of dateKeys) {
+    if (formattedData[key]) {
+      const formatted = formatToDDMMYYYY(formattedData[key])
+      if (formatted) {
+        formattedData[key] = formatted
+      }
+    }
+  }
+
   // Step 1-3: Composite PNG
-  const pngBuffer = await compositeToPNG(template, data)
+  const pngBuffer = await compositeToPNG(template, formattedData, bodyOverride)
 
   // Step 4: Convert PNG → single-page PDF
   const pdfBuffer = await pngToPdf(pngBuffer, template.imageWidth, template.imageHeight)

@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         const certTemplate = { id: tplSnap.id, ...tplSnap.data() } as unknown as CertificateTemplate
 
-        pdfBuffer = await renderCertificatePdf(certTemplate, certData)
+        pdfBuffer = await renderCertificatePdf(certTemplate, certData, markdownContent)
 
       } else {
         // ── Standard markdown path ─────────────────────────────────────────

@@ -36,7 +36,7 @@ const TEMPLATE_ID = 'default-internship-certificate'  // deterministic ID
 const BODY_TEMPLATE =
   'This is to certify that {{full_name}} {{relation_type}} {{parent_name}} of ' +
   '{{degree}} from {{institute_name}} has undergone training with our company ' +
-  '{{company_name}} from {{joining_date}} to {{end_date}} under {{department}}. ' +
+  '{{company_name}} from {{joining_date}} to {{end_date}} under {{department}}.\n\n' +
   'During the above-mentioned period {{pronoun}} demonstrated good professional ' +
   'conduct and behaviour, we wish {{pronoun_object}} all the best for future.'
 
@@ -65,8 +65,8 @@ const certificateTemplate = {
     {
       key: 'full_name',
       x: 1000,
-      y: 690,
-      fontSize: 38,
+      y: 750,
+      fontSize: 54,
       color: '#1a2456',
       fontWeight: 'bold',
       align: 'center',
@@ -74,16 +74,16 @@ const certificateTemplate = {
     {
       key: 'designation',
       x: 1000,
-      y: 735,
-      fontSize: 18,
-      color: '#9a9fa8',
-      fontWeight: 'normal',
+      y: 845,
+      fontSize: 24,
+      color: '#8fa0b3',
+      fontWeight: 'bold',
       align: 'center',
     },
     {
       key: 'current_date',
-      x: 718,
-      y: 1235,
+      x: 685,
+      y: 1250,
       fontSize: 20,
       color: '#1a2456',
       fontWeight: 'normal',
@@ -94,11 +94,11 @@ const certificateTemplate = {
   // Word-wrapped body paragraph
   bodyBox: {
     x: 1000,
-    y: 850,
-    maxCharsPerLine: 95,
-    fontSize: 19,
+    y: 910,
+    maxCharsPerLine: 88,
+    fontSize: 28,
     color: '#3a3f4a',
-    lineHeight: 38,
+    lineHeight: 48,
   },
 
   bodyTemplate: BODY_TEMPLATE,
