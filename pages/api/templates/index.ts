@@ -57,7 +57,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const now = new Date().toISOString()
         const content = markdownContent ?? ''
-        const variables = type === 'certificate' ? [] : extractVariables(content)
+        const variables = type === 'certificate'
+          ? [...new Set([
+              ...(bodyTemplate ? extractVariables(bodyTemplate) : []),
+              ...(Array.isArray(textFields) ? textFields.map((f: any) => f.key) : [])
+            ])]
+          : extractVariables(content)
 
         const docData: Record<string, unknown> = {
           name,

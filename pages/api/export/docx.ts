@@ -235,9 +235,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         documentId: string
         documentTitle: string
       }
-
-      if (!markdownContent || !employeeId || !documentId || !documentTitle) {
+      if (!employeeId || !documentId || !documentTitle) {
         return res.status(400).json({ error: 'Missing required fields.' })
+      }
+
+      const docRef = await adminDb
+        .collection('employees')
+        .doc(employeeId)
+        .collection('documents')
+        .doc(documentId)
+        .get()
+
+      const documentType = docRef.exists ? docRef.data()?.documentType : undefined
+
+      if (documentType !== 'certificate' && !markdownContent) {
+        return res.status(400).json({ error: 'markdownContent is required.' })
       }
 
       // ── 1. Fetch company name from settings ──────────────────────────

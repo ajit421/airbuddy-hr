@@ -55,8 +55,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         documentType?: string
       }
 
-      if (!markdownContent || !employeeId || !documentId || !versionId || !documentTitle) {
+      if (!employeeId || !documentId || !versionId || !documentTitle) {
         return res.status(400).json({ error: 'Missing required fields.' })
+      }
+
+      // Fetch parent document to resolve the true documentType
+      const docRef = await adminDb
+        .collection('employees')
+        .doc(employeeId)
+        .collection('documents')
+        .doc(documentId)
+        .get()
+
+      if (!docRef.exists) {
+        return res.status(404).json({ error: 'Document not found.' })
+      }
+
+      const resolvedDocumentType = docRef.data()?.documentType || documentType
+
+      // markdownContent is required for non-certificate documents
+      if (resolvedDocumentType !== 'certificate' && !markdownContent) {
+        return res.status(400).json({ error: 'markdownContent is required.' })
       }
 
       // ── 1. Fetch company settings ────────────────────────────────────────
@@ -82,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // ── 3. Render PDF ────────────────────────────────────────────────────
       let pdfBuffer: Buffer
 
-      if (documentType === 'certificate') {
+      if (resolvedDocumentType === 'certificate') {
         // ── Certificate: image-compositing path ────────────────────────────
         // Fetch certificateData (the variable map stored at generate time)
         const versionRef2 = adminDb
@@ -95,13 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const vSnap = await versionRef2.get()
         const certData = (vSnap.data()?.certificateData ?? {}) as Record<string, string>
 
-        // Fetch the template to get the render config
-        const docRef = await adminDb
-          .collection('employees')
-          .doc(employeeId)
-          .collection('documents')
-          .doc(documentId)
-          .get()
+        // Fetch the template config (templateId from already fetched docRef)
         const templateId = docRef.data()?.templateId as string | undefined
         if (!templateId) {
           return res.status(400).json({ error: 'Certificate template ID not found on document.' })
@@ -128,7 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // ── 4. Optional signature overlay with pdf-lib ───────────────────────
       let hasSigned = false
-      if (documentType !== 'certificate' && addSignature && settings.signatureStoragePath) {
+      if (resolvedDocumentType !== 'certificate' && addSignature && settings.signatureStoragePath) {
         try {
           // signatureStoragePath stores the direct Cloudinary HTTPS URL
           // (uploaded with type:'upload' / public delivery — downloadable directly).

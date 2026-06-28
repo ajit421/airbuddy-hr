@@ -52,10 +52,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           aiImproved: boolean
         }
 
-        if (!markdownContent) {
-          return res.status(400).json({ error: 'markdownContent is required.' })
-        }
-
         const now = new Date().toISOString()
         const docRef = adminDb
           .collection('employees')
@@ -72,14 +68,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             throw Object.assign(new Error('Document not found.'), { notFound: true })
           }
 
+          const documentType = parentDoc.data()?.documentType
+          // Require markdownContent only for non-certificates
+          if (!markdownContent && documentType !== 'certificate') {
+            throw Object.assign(new Error('markdownContent is required.'), { badRequest: true })
+          }
+
           const currentVersion: number = (parentDoc.data()?.currentVersion ?? 0) as number
           const nextVersion = currentVersion + 1
           const nextVersionId = `v${nextVersion}`
 
-          // Write new version document inside the transaction
-          tx.set(versionsRef.doc(nextVersionId), {
+          // Copy certificateData from the previous version if it is a certificate
+          let certificateData: Record<string, string> | undefined
+          if (documentType === 'certificate' && currentVersion > 0) {
+            const prevVersionSnap = await tx.get(versionsRef.doc(`v${currentVersion}`))
+            if (prevVersionSnap.exists) {
+              certificateData = prevVersionSnap.data()?.certificateData
+            }
+          }
+
+          const newVersionDoc: Record<string, any> = {
             versionNumber: nextVersion,
-            markdownContent,
+            markdownContent: markdownContent ?? '',
             exportedAs: null,
             exportStoragePath: null,
             hasSigned: false,
@@ -88,7 +98,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             changeNote: changeNote ?? '',
             createdAt: now,
             createdBy: uid,
-          })
+          }
+
+          if (certificateData) {
+            newVersionDoc.certificateData = certificateData
+          }
+
+          // Write new version document inside the transaction
+          tx.set(versionsRef.doc(nextVersionId), newVersionDoc)
 
           // Atomically increment currentVersion on parent doc
           tx.update(docRef, {
@@ -112,6 +129,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch (err: unknown) {
         const notFound = (err as { notFound?: boolean })?.notFound
         if (notFound) return res.status(404).json({ error: 'Document not found.' })
+        const badRequest = (err as { badRequest?: boolean })?.badRequest
+        if (badRequest) return res.status(400).json({ error: (err as Error).message })
         console.error('[POST /api/documents/[docId]/versions]', err)
         return res.status(500).json({ error: 'Failed to save version.' })
       }

@@ -50,23 +50,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? (settingsDoc.data() as CompanySettings)
         : ({} as CompanySettings)
 
-      // ── 4. Merge custom variables into markdown before filling ─────────────
-      // Custom variables override the standard template content so HR can
-      // patch any missing field without changing the template itself.
-      let mergedContent = template.markdownContent
-      if (Object.keys(customVariables).length > 0) {
-        for (const [key, value] of Object.entries(customVariables)) {
-          const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g')
-          mergedContent = mergedContent.replace(regex, value)
-        }
-      }
+      // ── 4 & 5. Fill variables & determine missing variables ────────────────
+      let markdownContent = ''
+      let missingVariables: string[] = []
 
-      // ── 5. Fill variables ─────────────────────────────────────────────────
-      const { result: markdownContent, missing: missingVariables } = fillVariables(
-        mergedContent,
-        employee,
-        settings
-      )
+      if (template.type === 'certificate') {
+        const certTemplate = template as unknown as CertificateTemplate
+        const allVarKeys = certTemplate.variables ?? []
+        const certData = resolveVariableMap(allVarKeys, employee, settings, customVariables)
+
+        // Identify which required certificate variables are missing
+        for (const key of allVarKeys) {
+          if (!certData[key] || certData[key].trim() === '') {
+            missingVariables.push(key)
+          }
+        }
+        missingVariables = [...new Set(missingVariables)]
+
+        // Populate and substitute variables inside the certificate's body template
+        const filled = fillVariables(certTemplate.bodyTemplate ?? '', employee, settings)
+        let resultBody = filled.result
+        if (Object.keys(customVariables).length > 0) {
+          for (const [key, value] of Object.entries(customVariables)) {
+            const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g')
+            resultBody = resultBody.replace(regex, value)
+          }
+        }
+        markdownContent = resultBody
+      } else {
+        // Standard markdown document flow
+        let mergedContent = template.markdownContent ?? ''
+        if (Object.keys(customVariables).length > 0) {
+          for (const [key, value] of Object.entries(customVariables)) {
+            const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g')
+            mergedContent = mergedContent.replace(regex, value)
+          }
+        }
+        const fillRes = fillVariables(mergedContent, employee, settings)
+        markdownContent = fillRes.result
+        missingVariables = fillRes.missing
+      }
 
       // ── 6. Create document record ─────────────────────────────────────────
       const now = new Date().toISOString()

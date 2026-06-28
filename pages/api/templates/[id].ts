@@ -47,6 +47,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           backgroundImageUrl,
         } = req.body as Partial<Template> & { backgroundImageUrl?: string }
 
+        const currentDoc = await adminDb.collection('templates').doc(id).get()
+        if (!currentDoc.exists) {
+          return res.status(404).json({ error: 'Template not found.' })
+        }
+        const currentType = type || currentDoc.data()?.type
+
         const updates: Record<string, unknown> = {}
         if (name !== undefined) updates.name = name
         if (type !== undefined) updates.type = type
@@ -57,10 +63,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (variables !== undefined) updates.variables = variables
         if (backgroundImageUrl !== undefined) updates.backgroundImageUrl = backgroundImageUrl
 
-        // Re-extract variables if content changed
+        // Re-extract variables if content changed (non-certificates only)
         if (markdownContent !== undefined) {
           updates.markdownContent = markdownContent
-          updates.variables = extractVariables(markdownContent)
+          if (currentType !== 'certificate') {
+            updates.variables = extractVariables(markdownContent)
+          }
+        }
+
+        // If certificate fields are updated, dynamically update variables
+        if (currentType === 'certificate') {
+          const currentData = currentDoc.data() || {}
+          const newBodyTemplate = req.body.bodyTemplate !== undefined ? req.body.bodyTemplate : currentData.bodyTemplate
+          const newTextFields = req.body.textFields !== undefined ? req.body.textFields : currentData.textFields
+
+          if (req.body.bodyTemplate !== undefined || req.body.textFields !== undefined) {
+            const bodyVars = newBodyTemplate ? extractVariables(newBodyTemplate) : []
+            const fieldVars = Array.isArray(newTextFields) ? newTextFields.map((f: any) => f.key) : []
+            updates.variables = [...new Set([...bodyVars, ...fieldVars])]
+          }
         }
 
         updates.updatedAt = new Date().toISOString()
