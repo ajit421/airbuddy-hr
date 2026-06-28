@@ -129,20 +129,53 @@ async function compositeToPNG(
 ): Promise<Buffer> {
   ensureFonts()
 
-  const { imageWidth: W, imageHeight: H } = template
-  const canvas = createCanvas(W, H)
+  // 1. Download background first to inspect natural dimensions
+  let bgImage: any = null
+  let W = template.imageWidth || 2000
+  let H = template.imageHeight || 1414
+
+  if (template.backgroundImageUrl) {
+    try {
+      const bgBuffer = await downloadBuffer(template.backgroundImageUrl)
+      bgImage = await loadImage(bgBuffer)
+      // Set base target canvas size to the natural high-resolution dimensions of the image
+      W = bgImage.width
+      H = bgImage.height
+    } catch (e) {
+      console.error('[compositeToPNG] Failed to load background image:', e)
+    }
+  }
+
+  // Apply a 2x quality multiplier to double the output resolution/DPI
+  // This renders both the background image and font vectors at high-density
+  const qualityMultiplier = 2
+  const targetW = W * qualityMultiplier
+  const targetH = H * qualityMultiplier
+
+  const canvas = createCanvas(targetW, targetH)
   const ctx = canvas.getContext('2d')
 
-  // 1. Draw background
-  if (template.backgroundImageUrl) {
-    const bgBuffer = await downloadBuffer(template.backgroundImageUrl)
-    const bgImage = await loadImage(bgBuffer)
-    ctx.drawImage(bgImage, 0, 0, W, H)
+  // Enable high-quality image smoothing
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+
+  if (bgImage) {
+    ctx.drawImage(bgImage, 0, 0, targetW, targetH)
   } else {
     // Blank white canvas if no background uploaded yet
     ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, W, H)
+    ctx.fillRect(0, 0, targetW, targetH)
   }
+
+  // Calculate scaling factor relative to template's configured reference coordinates
+  const refW = template.imageWidth || 2000
+  const refH = template.imageHeight || 1414
+  const scaleX = targetW / refW
+  const scaleY = targetH / refH
+
+  // Scale the context so all text sizes and coordinates automatically adapt to the high resolution canvas
+  ctx.save()
+  ctx.scale(scaleX, scaleY)
 
   // 2. Draw individual text fields (name, designation, date, etc.)
   for (const field of template.textFields) {
@@ -233,6 +266,8 @@ async function compositeToPNG(
       }
     }
   }
+
+  ctx.restore()
 
   return canvas.toBuffer('image/png') as unknown as Buffer
 }
