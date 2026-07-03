@@ -45,3 +45,6 @@ airbuddy-hr-firebase-adminsdk-fbsvc-96fa36db86.json
 .vercel
 
 scratch/
+*.pdf
+*.png
+*.docx
