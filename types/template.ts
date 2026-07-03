@@ -4,7 +4,6 @@
 import type { EmployeeStatus } from './employee'
 
 export type DocumentType =
-  | 'offer_letter'
   | 'nda'
   | 'internship_letter'
   | 'salary_slip'
