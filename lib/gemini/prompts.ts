@@ -86,17 +86,6 @@ If any field is completely unreadable or absent, return "" for that field. Never
  * under Indian employment law and standard HR practices.
  */
 const DOCUMENT_TYPE_CLAUSES: Record<string, string> = {
-  offer_letter: `Standard clauses to verify are present in an Indian offer letter:
-  - Designation, department, and reporting structure
-  - CTC (Cost to Company) breakdown or fixed gross salary
-  - Joining date and probation period (typically 3–6 months)
-  - Working hours and leave policy reference
-  - Confidentiality / Non-Disclosure obligation
-  - At-will termination notice period (both sides, typically 30/60/90 days)
-  - Background verification consent clause
-  - Offer validity period (e.g. "This offer is valid for 7 days")
-  - Governing law: Laws of India, jurisdiction of the company's city`,
-
   internship_letter: `Standard clauses to verify are present in an Indian internship appointment letter:
   - Internship duration (start and end date)
   - Stipend amount (or "unpaid internship" if applicable)

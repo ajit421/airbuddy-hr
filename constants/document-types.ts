@@ -9,7 +9,6 @@ import type { EmployeeStatus } from '@/types/employee'
  * Human-readable display labels for each document type.
  */
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  offer_letter:        'Offer Letter',
   nda:                 'NDA Agreement',
   internship_letter:   'Internship Letter',
   salary_slip:         'Salary Slip',
@@ -23,7 +22,6 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
  * Used to filter templates in the document generation wizard (Step 1).
  *
  * Rules:
- *   - offer_letter      → given before joining (any status, HR decides)
  *   - nda               → full-time, contract, intern
  *   - internship_letter → intern only
  *   - salary_slip       → full-time, contract
@@ -32,7 +30,6 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
  *   - certificate       → intern, full-time, contract
  */
 export const APPLICABLE_STATUS_MAP: Record<DocumentType, EmployeeStatus[]> = {
-  offer_letter:        ['intern', 'full-time', 'contract', 'resigned', 'terminated'],
   nda:                 ['full-time', 'contract', 'intern'],
   internship_letter:   ['intern'],
   salary_slip:         ['full-time', 'contract'],

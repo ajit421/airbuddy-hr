@@ -70,6 +70,12 @@ const VARIABLE_OPTIONS: Record<string, string[]> = {
   work_type: ['Full-Time', 'Part-Time'],
 }
 
+// Variables that should render as a multi-line textarea instead of a single-line input.
+// Add variable names here to give HR a bigger input area for long free-text fields.
+const VARIABLE_TEXTAREAS = new Set<string>([
+  'project_description',  // NDA WHEREAS clause — HR types the project details
+])
+
 // ── Step Indicator ─────────────────────────────────────────────────────────────
 
 function StepIndicator({ current }: { current: number }) {
@@ -614,6 +620,17 @@ export default function GenerateDocPage() {
                                     </option>
                                   ))}
                                 </select>
+                              ) : VARIABLE_TEXTAREAS.has(varName) ? (
+                                <textarea
+                                  id={`var-${varName}`}
+                                  rows={4}
+                                  placeholder={`Enter value for ${varName}…`}
+                                  value={customVars[varName] ?? ''}
+                                  onChange={(e) =>
+                                    setCustomVars((prev) => ({ ...prev, [varName]: e.target.value }))
+                                  }
+                                  className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-amber-500/30 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 transition-colors resize-y"
+                                />
                               ) : (
                                 <input
                                   id={`var-${varName}`}

@@ -42,13 +42,15 @@ export const VARIABLE_REGISTRY: Record<string, string> = {
   account_type:      'bankDetails.accountType',
 
   // ── Company / Settings ────────────────────────────────────────────────
-  company_name:      '__settings.companyName',
-  company_address:   '__settings.companyAddress',
-  company_cin:       '__settings.companyCIN',
-  company_email:     '__settings.companyEmail',
-  company_phone:     '__settings.companyPhone',
-  hr_name:           '__settings.hrName',
-  hr_designation:    '__settings.hrDesignation',
+  company_name:                 '__settings.companyName',
+  company_address:              '__settings.companyAddress',
+  company_cin:                  '__settings.companyCIN',
+  company_email:                '__settings.companyEmail',
+  company_phone:                '__settings.companyPhone',
+  company_pan:                  '__settings.companyPAN',
+  company_registered_address:   '__settings.companyRegisteredAddress',
+  hr_name:                      '__settings.hrName',
+  hr_designation:               '__settings.hrDesignation',
 
   // ── Computed at runtime ───────────────────────────────────────────────
   current_date:      '__computed.currentDate',
