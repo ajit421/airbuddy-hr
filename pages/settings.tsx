@@ -361,13 +361,30 @@ export default function SettingsPage() {
                   onChange={set('companyCIN')}
                   placeholder="U12345MH2024PTC123456"
                 />
+                <SettingsField
+                  label="Company PAN"
+                  id="company-pan"
+                  value={settings.companyPAN ?? ''}
+                  onChange={set('companyPAN')}
+                  placeholder="AABCA1234Z"
+                />
+                <div className="sm:col-span-1" />
                 <div className="sm:col-span-2">
                   <SettingsField
-                    label="Company Address"
+                    label="Registered Office Address (for NDA / legal documents)"
+                    id="company-registered-address"
+                    value={settings.companyRegisteredAddress ?? ''}
+                    onChange={set('companyRegisteredAddress')}
+                    placeholder="Motihari, Bihar — 845401"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <SettingsField
+                    label="Company Address (contact / letterhead)"
                     id="company-address"
                     value={settings.companyAddress ?? ''}
                     onChange={set('companyAddress')}
-                    placeholder="Phi 4, Greater Noida, Uttar Pradesh 201310"
+                    placeholder="B-43, Phi 3, Greater Noida, Uttar Pradesh 201310"
                   />
                 </div>
                 <SettingsField
