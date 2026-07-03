@@ -10,6 +10,7 @@
 
 import * as path from 'path'
 import * as fs from 'fs'
+import { NDA_AGREEMENT_TEMPLATE } from '../lib/templates/nda-template'
 
 // ── Load .env.local before importing Firebase Admin ───────────────────────────
 const envPath = path.resolve(process.cwd(), '.env.local')
@@ -78,78 +79,7 @@ interface DefaultTemplate {
 }
 
 const DEFAULT_TEMPLATES: DefaultTemplate[] = [
-  // ── 1. Offer Letter ─────────────────────────────────────────────────────
-  {
-    name: 'Offer Letter',
-    type: 'offer_letter',
-    description: 'Standard employment offer letter for new hires.',
-    applicableStatus: ['intern', 'full-time', 'contract'],
-    isDefault: true,
-    isActive: true,
-    markdownContent: `# OFFER LETTER
-
-**{{company_name}}**
-{{company_address}}
-Email: {{company_email}} | Phone: {{company_phone}}
-CIN: {{company_cin}}
-
----
-
-**Date:** {{current_date}}
-
-**To,**
-{{full_name}}
-
----
-
-Dear **{{full_name}}**,
-
-We are delighted to extend this offer of employment to you at **{{company_name}}**, and we look forward to welcoming you to our team.
-
-## Position Details
-
-| Field | Details |
-|-------|---------|
-| **Designation** | {{designation}} |
-| **Department** | {{department}} |
-| **Date of Joining** | {{joining_date}} |
-| **Employment Type** | {{employee_status}} |
-| **Gross Monthly Salary** | ₹{{salary}} |
-
-## Terms & Conditions
-
-1. This offer is contingent upon successful completion of background verification.
-2. You will be on a **90-day probation period** from the date of joining.
-3. The notice period during probation is **15 days** and **30 days** post-confirmation.
-4. Kindly report to the HR department on your joining date with the following originals:
-   - Aadhaar Card
-   - PAN Card
-   - Educational certificates
-   - Last employment relieving letter (if applicable)
-   - 2 passport-size photographs
-
-## Acceptance
-
-Please confirm your acceptance of this offer by signing below and returning a copy to us by **{{current_date}}**.
-
-We look forward to your positive response and to having you as part of the AirBuddy family.
-
-Warm regards,
-
-**{{hr_name}}**
-{{hr_designation}}
-{{company_name}}
-
----
-
-*I, {{full_name}}, hereby accept this offer of employment on the terms and conditions set forth above.*
-
-**Employee Signature:** ________________________  
-**Date:** ________________________
-`,
-  },
-
-  // ── 2. Internship Letter ─────────────────────────────────────────────────
+  // ── 1. Internship Letter ─────────────────────────────────────────────────
   {
     name: 'Internship Letter',
     type: 'internship_letter',
@@ -220,61 +150,7 @@ Regards,
     applicableStatus: ['full-time', 'contract', 'intern'],
     isDefault: true,
     isActive: true,
-    markdownContent: `# NON-DISCLOSURE AGREEMENT (NDA)
-
-This Non-Disclosure Agreement ("Agreement") is entered into as of **{{current_date}}**, between:
-
-**{{company_name}}**, a company incorporated under the Companies Act, 2013, with CIN **{{company_cin}}**, having its registered office at {{company_address}} (hereinafter referred to as the "**Company**"),
-
-AND
-
-**{{full_name}}**, residing at {{address}}, Aadhaar No. {{aadhaar_number}}, PAN: {{pan_number}} (hereinafter referred to as the "**Receiving Party**").
-
----
-
-## 1. Definition of Confidential Information
-
-"Confidential Information" means any data, information, or material provided or made available by the Company to the Receiving Party in any form, including but not limited to:
-
-- Technical data, trade secrets, and know-how
-- Research and development data
-- Business plans, financial data, and marketing strategies
-- Engineering drawings, specifications, and software
-- Customer and supplier lists
-
-## 2. Obligations of the Receiving Party
-
-The Receiving Party agrees to:
-
-1. Hold all Confidential Information in strict confidence
-2. Not disclose Confidential Information to any third party without prior written consent of the Company
-3. Use Confidential Information solely for the purpose of fulfilling their obligations to the Company
-4. Promptly notify the Company of any actual or suspected breach of this Agreement
-
-## 3. Term
-
-This Agreement shall remain in effect for a period of **3 (three) years** from the date of execution, and shall survive termination of employment.
-
-## 4. Return of Information
-
-Upon termination of employment or upon request by the Company, the Receiving Party shall immediately return or destroy all Confidential Information.
-
-## 5. Governing Law
-
-This Agreement shall be governed by the laws of India. Any dispute arising out of this Agreement shall be subject to the exclusive jurisdiction of courts in the city where the Company's registered office is located.
-
----
-
-**IN WITNESS WHEREOF**, the parties have executed this Agreement as of the date first written above.
-
-| | |
-|---|---|
-| **For {{company_name}}** | **Receiving Party** |
-| | |
-| **{{hr_name}}** | **{{full_name}}** |
-| {{hr_designation}} | Employee ID: {{employee_id}} |
-| Date: {{current_date}} | Date: |
-`,
+    markdownContent: NDA_AGREEMENT_TEMPLATE,
   },
 
   // ── 4. Salary Slip ────────────────────────────────────────────────────────
