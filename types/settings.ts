@@ -6,6 +6,9 @@ export interface CompanySettings {
   companyName: string
   companyAddress: string
   companyCIN: string               // Corporate Identification Number
+  companyPAN: string               // PAN of the company (e.g. AABCA1234Z)
+  companyRegisteredAddress: string // Legal registered office address used in NDA/legal docs
+                                   // (e.g. "Motihari, Bihar" — separate from companyAddress)
   companyEmail: string
   companyPhone: string
 
