@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 0.5,
   },
   h2: {
     fontSize: 11.5,
@@ -139,9 +139,6 @@ const styles = StyleSheet.create({
     color: BRAND.headingText,
     marginTop: 22,
     marginBottom: 8,
-    paddingBottom: 3,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#aaaaaa',
   },
   h3: {
     fontSize: 11,
@@ -277,15 +274,16 @@ interface Segment { text: string; bold: boolean; italic: boolean }
 
 function parseInline(line: string): Segment[] {
   const segs: Segment[] = []
-  const re = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g
+  // Matches ***bold+italic***, **bold**, *italic*, `code`
+  // \s* around markers allows bold adjacent to punctuation: (**text**) or "**text**"
+  const re = /\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*([^*]+?)\*/g
   let last = 0
   let m: RegExpExecArray | null
   while ((m = re.exec(line)) !== null) {
     if (m.index > last) segs.push({ text: line.slice(last, m.index), bold: false, italic: false })
-    if (m[2])      segs.push({ text: m[2], bold: true,  italic: true  })
-    else if (m[3]) segs.push({ text: m[3], bold: true,  italic: false })
-    else if (m[4]) segs.push({ text: m[4], bold: false, italic: true  })
-    else if (m[5]) segs.push({ text: m[5], bold: false, italic: false })
+    if (m[1])      segs.push({ text: m[1], bold: true,  italic: true  })
+    else if (m[2]) segs.push({ text: m[2], bold: true,  italic: false })
+    else if (m[3]) segs.push({ text: m[3], bold: false, italic: true  })
     last = m.index + m[0].length
   }
   if (last < line.length) segs.push({ text: line.slice(last), bold: false, italic: false })
@@ -333,17 +331,16 @@ function markdownToElements(markdown: string): React.ReactElement[] {
       continue
     }
 
-    // ── Headings (checked first — before list patterns!) ────────────────────
+    // ── Headings — always bold by their own style; do NOT pass through InlineText
+    // because segNormal would override the heading fontFamily with 'Helvetica'.
     if (line.startsWith('### ')) {
       const text = line.slice(4).trim()
-      const segs = parseInline(text)
-      els.push(<InlineText key={i} segs={segs} baseStyle={styles.h3} />)
+      els.push(<Text key={i} style={styles.h3}>{text}</Text>)
       continue
     }
     if (line.startsWith('## ')) {
       const text = line.slice(3).trim()
-      const segs = parseInline(text)
-      els.push(<InlineText key={i} segs={segs} baseStyle={styles.h2} />)
+      els.push(<Text key={i} style={styles.h2}>{text}</Text>)
       continue
     }
     if (line.startsWith('# ')) {
