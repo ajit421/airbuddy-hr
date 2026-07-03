@@ -264,7 +264,7 @@ export default function TemplateForm({ initial, mode }: TemplateFormProps) {
   const router = useRouter()
 
   const [name, setName] = useState(initial?.name ?? '')
-  const [type, setType] = useState<DocumentType>(initial?.type ?? 'offer_letter')
+  const [type, setType] = useState<DocumentType>(initial?.type ?? 'nda')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [markdownContent, setMarkdownContent] = useState(initial?.markdownContent ?? '')
   const [applicableStatus, setApplicableStatus] = useState<EmployeeStatus[]>(

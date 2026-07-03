@@ -34,6 +34,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const {
           companyName,
           companyAddress,
+          companyPAN,
+          companyRegisteredAddress,
           companyCIN,
           companyEmail,
           companyPhone,
@@ -49,6 +51,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const updates: Record<string, unknown> = {}
         if (companyName !== undefined) updates.companyName = companyName
         if (companyAddress !== undefined) updates.companyAddress = companyAddress
+        if (companyPAN !== undefined) updates.companyPAN = companyPAN
+        if (companyRegisteredAddress !== undefined) updates.companyRegisteredAddress = companyRegisteredAddress
         if (companyCIN !== undefined) updates.companyCIN = companyCIN
         if (companyEmail !== undefined) updates.companyEmail = companyEmail
         if (companyPhone !== undefined) updates.companyPhone = companyPhone

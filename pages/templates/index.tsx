@@ -52,7 +52,6 @@ const STATUS_LABELS: Record<EmployeeStatus, string> = {
 }
 
 const DOC_TYPE_COLORS: Record<DocumentType, string> = {
-  offer_letter:        'bg-indigo-500/15 text-indigo-400 border-indigo-500/25',
   nda:                 'bg-violet-500/15 text-violet-400 border-violet-500/25',
   internship_letter:   'bg-sky-500/15 text-sky-400 border-sky-500/25',
   salary_slip:         'bg-teal-500/15 text-teal-400 border-teal-500/25',
