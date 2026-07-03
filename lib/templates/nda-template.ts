@@ -20,21 +20,21 @@
 
 export const NDA_AGREEMENT_TEMPLATE = `# NON-DISCLOSURE AGREEMENT
 
-THIS NON-DISCLOSURE AGREEMENT ("AGREEMENT") IS MADE AND ENTERED INTO AS OF {{current_date}}
+THIS NON-DISCLOSURE AGREEMENT ("**AGREEMENT**") IS MADE AND ENTERED INTO AS OF **{{current_date}}**
 
-BY AND BETWEEN
+**BY AND BETWEEN**
 
-{{company_name}}, a company incorporated under the Companies Act, 2013 with its registered office at {{company_registered_address}}, having Company Identification Number (CIN) {{company_cin}} and PAN {{company_pan}} (hereinafter referred to as "Disclosing Party"),
+**{{company_name}}**, a company incorporated under the Companies Act, 2013 with its registered office at {{company_registered_address}}, having Company Identification Number (CIN) {{company_cin}} and PAN {{company_pan}} (hereinafter referred to as "**Disclosing Party**"),
 
-AND
+**AND**
 
-{{full_name}}, Son of Mr {{father_name}}, residing at {{address}}, having Aadhaar Number {{aadhaar_number}} and PAN Number {{pan_number}} (hereinafter referred to as "Receiving Party").
+**{{full_name}}**, Son of Mr **{{father_name}}**, residing at **{{address}}**, having Aadhaar Number **{{aadhaar_number}}** and PAN Number **{{pan_number}}** (hereinafter referred to as "**Receiving Party**").
 
-WHEREAS, the Disclosing Party intends to disclose certain confidential and proprietary information to the Receiving Party in connection with {{project_description}} (hereinafter referred to as the "Project"); and
+**WHEREAS**, the Disclosing Party intends to disclose certain confidential and proprietary information to the Receiving Party in connection with **{{project_description}}** (hereinafter referred to as the "Project"); and
 
-WHEREAS, the Receiving Party desires to receive such confidential and proprietary information solely for the purpose of evaluating and/or participating in the Project;
+**WHEREAS**, the Receiving Party desires to receive such confidential and proprietary information solely for the purpose of evaluating and/or participating in the Project;
 
-NOW, THEREFORE, in consideration of the mutual covenants and agreements herein contained, and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the parties agree as follows:
+**NOW, THEREFORE**, in consideration of the mutual covenants and agreements herein contained, and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the parties agree as follows:
 
 ## 1. Confidential Information
 
@@ -83,17 +83,31 @@ IN WITNESS WHEREOF, the parties have executed this Agreement as of the date firs
 
 &nbsp;
 
+**DISCLOSING PARTY**
+
 **{{company_name}}**
-
-By: {{hr_name}}
-
-Signature: ___________________________
-
-Title: {{hr_designation}}
 
 &nbsp;
 
-**{{full_name}}**
+Name: **{{hr_name}}**
+
+Designation: {{hr_designation}}
 
 Signature: ___________________________
+
+Date: ___________________________
+
+&nbsp;
+
+&nbsp;
+
+**RECEIVING PARTY**
+
+**{{full_name}}**
+
+&nbsp;
+
+Signature: ___________________________
+
+Date: ___________________________
 `

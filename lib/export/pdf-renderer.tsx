@@ -124,60 +124,70 @@ const styles = StyleSheet.create({
 
   // ── Body typography — legal document style ───────────────────────────────────
   h1: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: 'Helvetica-Bold',
     color: BRAND.headingText,
-    marginTop: 0,
-    marginBottom: 16,
+    marginTop: 4,
+    marginBottom: 20,
     textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 2,
   },
   h2: {
     fontSize: 11.5,
     fontFamily: 'Helvetica-Bold',
     color: BRAND.headingText,
-    marginTop: 18,
-    marginBottom: 6,
+    marginTop: 22,
+    marginBottom: 8,
+    paddingBottom: 3,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#aaaaaa',
   },
   h3: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
     color: BRAND.headingText,
-    marginTop: 12,
+    marginTop: 14,
     marginBottom: 5,
   },
   paragraph: {
     marginTop: 0,
-    marginBottom: 8,
-    lineHeight: 1.8,
+    marginBottom: 10,
+    lineHeight: 1.9,
     textAlign: 'justify',
     color: BRAND.bodyText,
-    fontSize: 11,
+    fontSize: 10.5,
+    // NOTE: No fontFamily here — set per-segment so bold/italic overrides work in react-pdf v4
   },
   divider: {
     borderBottomWidth: 0.75,
     borderBottomColor: BRAND.divider,
-    marginVertical: 12,
+    marginVertical: 14,
   },
   listRow: {
     flexDirection: 'row',
-    marginBottom: 5,
-    marginLeft: 18,
+    marginBottom: 6,
+    marginLeft: 14,
     lineHeight: 1.7,
   },
   bullet: {
-    width: 20,
-    fontSize: 11,
+    width: 18,
+    fontSize: 10.5,
+    fontFamily: 'Helvetica',
     color: BRAND.bodyText,
     flexShrink: 0,
   },
   listText: {
     flex: 1,
-    fontSize: 11,
-    lineHeight: 1.7,
+    fontSize: 10.5,
+    lineHeight: 1.8,
     textAlign: 'justify',
     color: BRAND.bodyText,
+    // NOTE: No fontFamily here — set per-segment so bold/italic overrides work in react-pdf v4
+  },
+  // Per-segment font styles — always applied to every segment, never inherited
+  segNormal: {
+    fontFamily: 'Helvetica',
   },
   bold: {
     fontFamily: 'Helvetica-Bold',
@@ -189,13 +199,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-BoldOblique',
   },
   space: {
-    height: 10,
+    height: 8,
   },
   signatureLine: {
-    fontSize: 11,
-    color: BRAND.bodyText,
-    marginTop: 2,
-    marginBottom: 2,
+    fontSize: 10.5,
+    color: '#444444',
+    marginTop: 4,
+    marginBottom: 4,
+    letterSpacing: 0.3,
   },
 
   // ── Footer (Exactly matching the template PDF) ──────────────────────────────
@@ -230,13 +241,18 @@ const styles = StyleSheet.create({
   },
 })
 
-// ─── Footer SVG Icons ────────────────────────────────────────────────────────
+
+
 const PhoneIcon = () => (
-  <Svg width="15" height="15" viewBox="0 0 14 14" style={{ alignSelf: 'center' }}>
-    <Circle cx="7" cy="7" r="6" fill="none" stroke="#ffffff" strokeWidth="1.2" />
+  <Svg width="15" height="15" viewBox="0 0 24 24" style={{ alignSelf: 'center' }}>
+    {/* <Circle cx="12" cy="12" r="11" fill="none" stroke="#ffffff" strokeWidth="1.8" /> */}
     <Path
-      d="M5.2 4.2 C4.8 4.2 4.6 4.4 4.5 4.8 C4.3 5.2 4.3 5.8 4.8 6.4 C5.2 7.0 5.8 7.6 6.5 8.0 C7.1 8.4 7.7 8.4 8.1 8.2 C8.4 8.1 8.6 7.9 8.6 7.6 L8.3 6.9 C8.2 6.7 8.0 6.6 7.8 6.7 L7.3 6.9 C7.1 6.8 6.8 6.6 6.6 6.4 C6.4 6.2 6.2 5.9 6.1 5.7 L6.3 5.2 C6.4 5.0 6.3 4.8 6.1 4.7 L5.2 4.2 Z"
-      fill="#ffffff"
+      d="M14.05 6C15.0268 6.19057 15.9244 6.66826 16.6281 7.37194C17.3318 8.07561 17.8095 8.97326 18 9.95M14.05 2C16.0793 2.22544 17.9716 3.13417 19.4163 4.57701C20.8609 6.01984 21.7721 7.91101 22 9.94M18.5 21C9.93959 21 3 14.0604 3 5.5C3 5.11378 3.01413 4.73086 3.04189 4.35173C3.07375 3.91662 3.08968 3.69907 3.2037 3.50103C3.29814 3.33701 3.4655 3.18146 3.63598 3.09925C3.84181 3 4.08188 3 4.56201 3H7.37932C7.78308 3 7.98496 3 8.15802 3.06645C8.31089 3.12515 8.44701 3.22049 8.55442 3.3441C8.67601 3.48403 8.745 3.67376 8.88299 4.05321L10.0491 7.26005C10.2096 7.70153 10.2899 7.92227 10.2763 8.1317C10.2643 8.31637 10.2012 8.49408 10.0942 8.64506C9.97286 8.81628 9.77145 8.93713 9.36863 9.17882L8 10C9.2019 12.6489 11.3501 14.7999 14 16L14.8212 14.6314C15.0629 14.2285 15.1837 14.0271 15.3549 13.9058C15.5059 13.7988 15.6836 13.7357 15.8683 13.7237C16.0777 13.7101 16.2985 13.7904 16.74 13.9509L19.9468 15.117C20.3262 15.255 20.516 15.324 20.6559 15.4456C20.7795 15.553 20.8749 15.6891 20.9335 15.842C21 16.015 21 16.2169 21 16.6207V19.438C21 19.9181 21 20.1582 20.9007 20.364C20.8185 20.5345 20.663 20.7019 20.499 20.7963C20.3009 20.9103 20.0834 20.9262 19.6483 20.9581C19.2691 20.9859 18.8862 21 18.5 21Z"
+      fill="none"
+      stroke="#ffffff"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </Svg>
 )
@@ -276,13 +292,20 @@ function parseInline(line: string): Segment[] {
   return segs
 }
 
+// Always returns an explicit fontFamily so react-pdf v4 can never fall back to an
+// inherited fontFamily from the parent <Text> — that parent override is the root
+// cause of bold/italic not rendering.
 function segmentStyle(s: Segment): PDFStyle {
   if (s.bold && s.italic) return styles.boldItalic
   if (s.bold)             return styles.bold
   if (s.italic)           return styles.italic
-  return {}
+  return styles.segNormal  // explicit 'Helvetica' — never empty
 }
 
+// Renders a line of parsed inline segments.
+// IMPORTANT: baseStyle must NOT contain a fontFamily because react-pdf v4
+// prevents child <Text> fontFamily from overriding an ancestor fontFamily.
+// Each segment receives segmentStyle which always provides an explicit fontFamily.
 function InlineText({ segs, baseStyle }: { segs: Segment[]; baseStyle?: PDFStyle }) {
   return (
     <Text style={baseStyle}>
