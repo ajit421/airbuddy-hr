@@ -63,7 +63,8 @@ function wordWrapByWidth(text: string, maxWidth: number, ctx: SKRSContext2D): st
 
   for (const word of words) {
     const testLine = currentLine ? currentLine + ' ' + word : word
-    const testWidth = ctx.measureText(testLine).width
+    // Strip **bold** markers before measuring so wrapping is accurate
+    const testWidth = ctx.measureText(testLine.replace(/\*\*/g, '')).width
     if (testWidth <= maxWidth) {
       currentLine = testLine
     } else {
@@ -118,6 +119,66 @@ function formatToDDMMYYYY(dateStr: string | undefined): string | undefined {
   }
 
   return dateStr
+}
+
+// ── Inline bold helpers ───────────────────────────────────────────────────
+
+/**
+ * Split a string containing **bold** markers into typed segments.
+ * Odd-indexed parts (between pairs of **) are bold; even-indexed are normal.
+ * Backward-compatible: strings with no ** markers return a single normal segment.
+ */
+function parseInlineBold(text: string): Array<{ text: string; bold: boolean }> {
+  const segments: Array<{ text: string; bold: boolean }> = []
+  const parts = text.split(/\*\*/)
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i]) {
+      segments.push({ text: parts[i], bold: i % 2 === 1 })
+    }
+  }
+  return segments
+}
+
+/**
+ * Split a line (with possible **bold** markers) into word-level tokens.
+ * Used for justified text so each word's bold state is known individually.
+ */
+function lineToWordTokens(line: string): Array<{ text: string; bold: boolean }> {
+  const segments = parseInlineBold(line)
+  const tokens: Array<{ text: string; bold: boolean }> = []
+  for (const seg of segments) {
+    const words = seg.text.match(/\S+/g)
+    if (words) {
+      for (const word of words) {
+        tokens.push({ text: word, bold: seg.bold })
+      }
+    }
+  }
+  return tokens
+}
+
+/**
+ * Draw a string with **bold** markers inline at (x, y).
+ * Each bold segment is rendered in bold weight; the rest in normal weight.
+ */
+function drawBoldText(
+  text: string,
+  x: number,
+  y: number,
+  fontSize: number,
+  color: string,
+  ctx: SKRSContext2D
+): void {
+  const segments = parseInlineBold(text)
+  let currentX = x
+  ctx.fillStyle = color
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+  for (const seg of segments) {
+    ctx.font = `${seg.bold ? 'bold' : 'normal'} ${fontSize}px Montserrat`
+    ctx.fillText(seg.text, currentX, y)
+    currentX += ctx.measureText(seg.text).width
+  }
 }
 
 // ── PNG compositing ───────────────────────────────────────────────────────
@@ -205,12 +266,13 @@ async function compositeToPNG(
     const box = template.bodyBox
     const filledBody = bodyOverride || (template.bodyTemplate ? fillTemplate(template.bodyTemplate, data) : '')
 
+    // Use normal weight for avgCharWidth baseline (bold is ~10% wider — acceptable for wrapping)
     ctx.font = `normal ${box.fontSize}px Montserrat`
     ctx.fillStyle = box.color
     ctx.textBaseline = 'alphabetic'
 
-    // Determine the box's max pixel width based on maxCharsPerLine and average character width of actual text
-    const cleanBody = filledBody.replace(/\r?\n/g, ' ')
+    // Strip **bold** markers before measuring box width so they don't inflate avgCharWidth
+    const cleanBody = filledBody.replace(/\r?\n/g, ' ').replace(/\*\*/g, '')
     const avgCharWidth = ctx.measureText(cleanBody).width / (cleanBody.length > 0 ? cleanBody.length : 10)
     const maxWidth = avgCharWidth * (box.maxCharsPerLine || 95)
 
@@ -229,27 +291,30 @@ async function compositeToPNG(
         const isLastLine = i === lines.length - 1
 
         if (isLastLine) {
-          // Draw last line left-aligned
-          ctx.textAlign = 'left'
-          ctx.fillText(lines[i], xLeft, currentY)
+          // Last line of paragraph: left-aligned, rendered with inline bold
+          drawBoldText(lines[i], xLeft, currentY, box.fontSize, box.color, ctx)
         } else {
-          const words = lines[i].split(/\s+/)
-          if (words.length <= 1) {
-            // Fallback if line has only 1 word
-            ctx.textAlign = 'left'
-            ctx.fillText(lines[i], xLeft, currentY)
+          // Non-last lines: justified, rendered word-by-word with per-word bold
+          const wordTokens = lineToWordTokens(lines[i])
+          if (wordTokens.length <= 1) {
+            drawBoldText(lines[i], xLeft, currentY, box.fontSize, box.color, ctx)
           } else {
-            // Justified text drawing
-            const wordsWidths = words.map(w => ctx.measureText(w).width)
+            const wordsWidths = wordTokens.map(t => {
+              ctx.font = `${t.bold ? 'bold' : 'normal'} ${box.fontSize}px Montserrat`
+              return ctx.measureText(t.text).width
+            })
             const totalWordsWidth = wordsWidths.reduce((sum, w) => sum + w, 0)
             const extraSpace = maxWidth - totalWordsWidth
-            const gapWidth = extraSpace / (words.length - 1)
+            const gapWidth = extraSpace / (wordTokens.length - 1)
 
+            ctx.textBaseline = 'alphabetic'
             ctx.textAlign = 'left'
             let currentX = xLeft
-            for (let j = 0; j < words.length; j++) {
-              ctx.fillText(words[j], currentX, currentY)
-              currentX += wordsWidths[j] + gapWidth
+            for (let j = 0; j < wordTokens.length; j++) {
+              ctx.font = `${wordTokens[j].bold ? 'bold' : 'normal'} ${box.fontSize}px Montserrat`
+              ctx.fillStyle = box.color
+              ctx.fillText(wordTokens[j].text, currentX, currentY)
+              currentX += wordsWidths[j] + (j < wordTokens.length - 1 ? gapWidth : 0)
             }
           }
         }
