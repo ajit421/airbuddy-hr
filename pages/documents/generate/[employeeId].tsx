@@ -61,6 +61,15 @@ const STATUS_COLORS: Record<EmployeeStatus, string> = {
 
 const STEPS = ['Select Template', 'Review Variables', 'Edit Document', 'Export']
 
+// ── Variable option presets ────────────────────────────────────────────────
+// Variables listed here render as dropdowns instead of free-text inputs.
+// Add/remove entries here to control which variables have fixed choices.
+
+const VARIABLE_OPTIONS: Record<string, string[]> = {
+  work_mode: ['On-Site', 'Hybrid Model', 'Fully Remote'],
+  work_type: ['Full-Time', 'Part-Time'],
+}
+
 // ── Step Indicator ─────────────────────────────────────────────────────────────
 
 function StepIndicator({ current }: { current: number }) {
@@ -577,26 +586,49 @@ export default function GenerateDocPage() {
                     </div>
 
                     <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-5 flex flex-col gap-4">
-                      {missingVariables.map((varName) => (
-                        <div key={varName}>
-                          <label
-                            htmlFor={`var-${varName}`}
-                            className="block text-xs font-medium text-amber-400 mb-1.5"
-                          >
-                            {`{{${varName}}}`}
-                          </label>
-                          <input
-                            id={`var-${varName}`}
-                            type="text"
-                            placeholder={`Enter value for ${varName}`}
-                            value={customVars[varName] ?? ''}
-                            onChange={(e) =>
-                              setCustomVars((prev) => ({ ...prev, [varName]: e.target.value }))
-                            }
-                            className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-amber-500/30 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 transition-colors"
-                          />
-                        </div>
-                      ))}
+                      {missingVariables.map((varName) => {
+                          const options = VARIABLE_OPTIONS[varName]
+                          return (
+                            <div key={varName}>
+                              <label
+                                htmlFor={`var-${varName}`}
+                                className="block text-xs font-medium text-amber-400 mb-1.5"
+                              >
+                                {`{{${varName}}}`}
+                              </label>
+                              {options ? (
+                                <select
+                                  id={`var-${varName}`}
+                                  value={customVars[varName] ?? ''}
+                                  onChange={(e) =>
+                                    setCustomVars((prev) => ({ ...prev, [varName]: e.target.value }))
+                                  }
+                                  className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-amber-500/30 text-white text-sm focus:outline-none focus:border-indigo-500/60 transition-colors appearance-none cursor-pointer"
+                                >
+                                  <option value="" disabled className="bg-[#13161e] text-slate-500">
+                                    — select an option —
+                                  </option>
+                                  {options.map((opt) => (
+                                    <option key={opt} value={opt} className="bg-[#13161e] text-white">
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  id={`var-${varName}`}
+                                  type="text"
+                                  placeholder={`Enter value for ${varName}`}
+                                  value={customVars[varName] ?? ''}
+                                  onChange={(e) =>
+                                    setCustomVars((prev) => ({ ...prev, [varName]: e.target.value }))
+                                  }
+                                  className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-amber-500/30 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 transition-colors"
+                                />
+                              )}
+                            </div>
+                          )
+                        })}
                     </div>
 
                     <div className="flex items-center justify-between">
