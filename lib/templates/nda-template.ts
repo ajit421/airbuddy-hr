@@ -1,7 +1,10 @@
 // lib/templates/nda-template.ts
 // Canonical NDA template for AirBuddy Aerospace Pvt. Ltd.
-// Matches the exact clause structure and wording of the signed reference NDAs.
-// Used by migrate-default-templates.ts and any future migration scripts.
+// Confirmed structure (as of review):
+//   - Clause 3 (Exceptions): DETAILED 4-point legal version
+//   - Clause 5 (Term): 30 days' prior written notice for termination
+//   - PAN Number: MANDATORY field — HR must enter "N/A" if candidate has no PAN
+//   - Disclosing Party signatory: GENERIC placeholder — filled manually by HR each time
 //
 // Variables used:
 //   {{current_date}}                 — computed: today's date
@@ -13,10 +16,10 @@
 //   {{father_name}}                  — employee: fatherName
 //   {{address}}                      — employee: address.street
 //   {{aadhaar_number}}               — employee: aadhaarNumber
-//   {{pan_number}}                   — employee: panNumber
+//   {{pan_number}}                   — employee: panNumber  (MANDATORY — enter "N/A" if not available)
 //   {{project_description}}          — ad-hoc: entered by HR at generation time (textarea)
-//   {{hr_name}}                      — settings: hrName
-//   {{hr_designation}}               — settings: hrDesignation
+//   {{hr_name}}                      — MANUAL: entered by HR at generation time
+//   {{hr_designation}}               — MANUAL: entered by HR at generation time
 
 export const NDA_AGREEMENT_TEMPLATE = `# NON-DISCLOSURE AGREEMENT
 
@@ -40,16 +43,18 @@ THIS NON-DISCLOSURE AGREEMENT ("**AGREEMENT**") IS MADE AND ENTERED INTO AS OF *
 
 **(a)** "Confidential Information" means any and all information or data that has or could have commercial value or other utility in the business in which the Disclosing Party is engaged. If Confidential Information is in written form, the Disclosing Party shall label or stamp the materials with the word "Confidential" or some similar warning. If Confidential Information is transmitted orally, the Disclosing Party shall promptly provide writing indicating that such oral communication constituted Confidential Information. Confidential Information includes, but is not limited to:
 
-- Technical data, specifications, designs, schematics, and drawings relating to the Project and the Disclosing Party's technology;
-- Performance data, test results, and analysis reports;
+- Technical data, specifications, designs, schematics, drawings, CAD/3D models, and simulation data relating to the Project and the Disclosing Party's technology;
+- Source code, software, algorithms, firmware, scripts, tools, and any related documentation;
+- Performance data, test results, prototypes, and analysis reports;
 - Know-how, trade secrets, inventions, and proprietary processes developed or used by the Disclosing Party;
+- Business, financial, operational, HR/personnel, and administrative information, including but not limited to internal records, employee data, contracts, vendor/customer information, and correspondence;
 - Any other information that the Disclosing Party designates as confidential or that, given the nature of the information and the circumstances of disclosure, should reasonably be understood to be confidential.
 
 **(b)** The Project itself, and the fact that the Receiving Party is working on or evaluating the Project, shall be maintained anonymous and shall not be disclosed to any third party without the prior written consent of the Disclosing Party.
 
 ## 2. Non-Disclosure
 
-The Receiving Party agrees that at all times and notwithstanding any termination or expiration of this Agreement it will hold in strict confidence and not disclose to any third party the Confidential Information, except as approved in writing by the Disclosing Party, and will use the Confidential Information for no purpose other than evaluating and/or participating in the Project as authorised by the Disclosing Party. The Receiving Party shall access the Confidential Information only on a need-to-know basis and shall not copy, reproduce, sell, assign, license, market, transfer or otherwise dispose of, give or disclose such Confidential Information to third parties or use such Confidential Information for any purposes whatsoever other than as provided for in this Agreement.
+The Receiving Party agrees that at all times and notwithstanding any termination or expiration of this Agreement it will hold in strict confidence and not disclose to any third party the Confidential Information, except as approved in writing by the Disclosing Party, and will use the Confidential Information solely for the purpose of performing its obligations under, and/or evaluating and/or participating in, the Project as authorised by the Disclosing Party. The Receiving Party shall access the Confidential Information only on a need-to-know basis and shall not copy, reproduce, sell, assign, license, market, transfer or otherwise dispose of, give or disclose such Confidential Information to third parties or use such Confidential Information for any purposes whatsoever other than as provided for in this Agreement.
 
 ## 3. Exceptions to Non-Disclosure
 
@@ -99,7 +104,6 @@ Date: ___________________________
 
 &nbsp;
 
-&nbsp;
 
 **RECEIVING PARTY**
 
