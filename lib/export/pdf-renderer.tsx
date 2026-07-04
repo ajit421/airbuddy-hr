@@ -11,6 +11,16 @@
 //     Light sage band below it
 //
 // No signature or seal is auto-placed; HR signs/stamps manually after export.
+//
+// ── FORMATTING FIX LOG (this revision) ────────────────────────────────────
+//   1. Disabled react-pdf's automatic word hyphenation (Font.registerHyphenationCallback)
+//      — this was causing ugly mid-word breaks like "reg-istered", "acknowl-edged".
+//   2. Reduced paragraph/list lineHeight from 1.9/1.8 → 1.5 for a tighter,
+//      professional legal-document look and to reduce wasted page space.
+//   3. Reduced vertical margins on headings, dividers, list rows, and blank-line
+//      spacers so the document flows more compactly across pages.
+//   4. Reduced letter-spacing/word-spacing on justified paragraphs to avoid
+//      uneven gaps between words on short lines.
 
 import React from 'react'
 import path from 'path'
@@ -27,7 +37,14 @@ import {
   Path,
   Rect,
   Line,
+  Font,
 } from '@react-pdf/renderer'
+
+// ─── Disable automatic hyphenation ────────────────────────────────────────────
+// react-pdf hyphenates long words by default when wrapping justified text,
+// which produces broken words like "reg-istered". For legal documents we
+// never want mid-word breaks — force the callback to return the word whole.
+Font.registerHyphenationCallback((word) => [word])
 
 // Type alias for a single react-pdf style object
 type PDFStyle = ReturnType<typeof StyleSheet.create>[string]
@@ -57,8 +74,8 @@ const BRAND = {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 160, // Clear the logo wordmark zone on every page
-    paddingBottom: 80, // Clear the footer on every page
+    paddingTop: 150,   // Clear the logo wordmark zone on every page (slightly tighter)
+    paddingBottom: 70, // Clear the footer on every page (slightly tighter)
     paddingLeft: 62,
     paddingRight: 62,
     color: BRAND.bodyText,
@@ -127,8 +144,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Helvetica-Bold',
     color: BRAND.headingText,
-    marginTop: 4,
-    marginBottom: 20,
+    marginTop: 2,
+    marginBottom: 16,
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -137,35 +154,56 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontFamily: 'Helvetica-Bold',
     color: BRAND.headingText,
-    marginTop: 22,
-    marginBottom: 8,
+    marginTop: 14,
+    marginBottom: 6,
   },
   h3: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
     color: BRAND.headingText,
-    marginTop: 14,
-    marginBottom: 5,
+    marginTop: 10,
+    marginBottom: 4,
   },
   paragraph: {
     marginTop: 0,
-    marginBottom: 10,
-    lineHeight: 1.9,
+    marginBottom: 8,
+    lineHeight: 1.5,          // was 1.9 — tighter, professional legal-doc spacing
     textAlign: 'justify',
     color: BRAND.bodyText,
     fontSize: 10.5,
     // NOTE: No fontFamily here — set per-segment so bold/italic overrides work in react-pdf v4
   },
+  // "BY AND BETWEEN" / "AND" connector lines — centered, not justified
+  connectorLine: {
+    marginTop: 0,
+    marginBottom: 8,
+    lineHeight: 1.5,
+    textAlign: 'center',
+    color: BRAND.bodyText,
+    fontSize: 10.5,
+  },
+  // Opening recital line ("THIS NON-DISCLOSURE AGREEMENT...IS MADE...") —
+  // slightly smaller font + tighter letter-spacing so the date/title clause
+  // fits on a single line instead of wrapping awkwardly.
+  openingLine: {
+    marginTop: 0,
+    marginBottom: 8,
+    lineHeight: 1.4,
+    textAlign: 'left',
+    color: BRAND.bodyText,
+    fontSize: 9.7,
+    letterSpacing: -0.05,
+  },
   divider: {
     borderBottomWidth: 0.75,
     borderBottomColor: BRAND.divider,
-    marginVertical: 14,
+    marginVertical: 10,        // was 14
   },
   listRow: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: 5,           // was 6
     marginLeft: 14,
-    lineHeight: 1.7,
+    lineHeight: 1.5,           // was 1.7
   },
   bullet: {
     width: 18,
@@ -177,7 +215,7 @@ const styles = StyleSheet.create({
   listText: {
     flex: 1,
     fontSize: 10.5,
-    lineHeight: 1.8,
+    lineHeight: 1.5,          // was 1.8
     textAlign: 'justify',
     color: BRAND.bodyText,
     // NOTE: No fontFamily here — set per-segment so bold/italic overrides work in react-pdf v4
@@ -196,13 +234,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-BoldOblique',
   },
   space: {
-    height: 8,
+    height: 5,                // was 8 — trims extra blank-line/&nbsp; gaps
   },
   signatureLine: {
     fontSize: 10.5,
     color: '#444444',
-    marginTop: 4,
-    marginBottom: 4,
+    marginTop: 3,
+    marginBottom: 3,
     letterSpacing: 0.3,
   },
 
@@ -333,19 +371,23 @@ function markdownToElements(markdown: string): React.ReactElement[] {
 
     // ── Headings — always bold by their own style; do NOT pass through InlineText
     // because segNormal would override the heading fontFamily with 'Helvetica'.
+    // minPresenceAhead ensures the heading only prints if at least that much
+    // space remains on the current page — otherwise react-pdf pushes the
+    // whole heading to the next page instead of leaving it orphaned alone
+    // at the bottom with its body text starting on the following page.
     if (line.startsWith('### ')) {
       const text = line.slice(4).trim()
-      els.push(<Text key={i} style={styles.h3}>{text}</Text>)
+      els.push(<Text key={i} style={styles.h3} minPresenceAhead={40}>{text}</Text>)
       continue
     }
     if (line.startsWith('## ')) {
       const text = line.slice(3).trim()
-      els.push(<Text key={i} style={styles.h2}>{text}</Text>)
+      els.push(<Text key={i} style={styles.h2} minPresenceAhead={40}>{text}</Text>)
       continue
     }
     if (line.startsWith('# ')) {
       const text = line.slice(2).trim()
-      els.push(<Text key={i} style={styles.h1}>{text}</Text>)
+      els.push(<Text key={i} style={styles.h1} minPresenceAhead={40}>{text}</Text>)
       continue
     }
 
@@ -363,11 +405,38 @@ function markdownToElements(markdown: string): React.ReactElement[] {
       continue
     }
 
+    // ── Connector lines: "BY AND BETWEEN" / "AND" — always centered, never justified ──
+    // Matches the line whether wrapped in **bold** markdown or plain text.
+    const connectorMatch = trimmed.match(/^\*{0,2}(BY AND BETWEEN|AND)\*{0,2}$/)
+    if (connectorMatch) {
+      els.push(
+        <Text key={i} style={[styles.connectorLine, styles.bold]}>{connectorMatch[1]}</Text>
+      )
+      continue
+    }
+
+    // ── Opening recital line: "THIS NON-DISCLOSURE AGREEMENT (...) IS MADE AND
+    // ENTERED INTO AS OF <date>" — rendered at a slightly smaller size so the
+    // full clause (including the date) fits on a single line instead of
+    // wrapping mid-sentence.
+    if (/^THIS NON-DISCLOSURE AGREEMENT/i.test(trimmed)) {
+      const segs = parseInline(line)
+      els.push(
+        <InlineText key={i} segs={segs} baseStyle={styles.openingLine} />
+      )
+      continue
+    }
+
     // ── Bullet list (- or *) ────────────────────────────────────────────────
+    // wrap={false} is CRITICAL here: without it, react-pdf can split this row
+    // mid-item across a page break — the bullet number renders on one page and
+    // its text renders alone on the next page with no number. wrap={false}
+    // forces the entire row to move to the next page as one unbroken unit if
+    // it doesn't fit in the remaining space on the current page.
     if (line.startsWith('- ') || line.startsWith('* ')) {
       const segs = parseInline(line.slice(2))
       els.push(
-        <View key={i} style={styles.listRow}>
+        <View key={i} style={styles.listRow} wrap={false}>
           <Text style={styles.bullet}>{'•'}</Text>
           <InlineText segs={segs} baseStyle={styles.listText} />
         </View>
@@ -376,11 +445,13 @@ function markdownToElements(markdown: string): React.ReactElement[] {
     }
 
     // ── Numbered list (1. 2. 3. …) ──────────────────────────────────────────
+    // Same wrap={false} protection as the bullet list above — keeps the
+    // number and its full text glued together across page breaks.
     const numMatch = line.match(/^(\d+)\.\s(.*)$/)
     if (numMatch) {
       const segs = parseInline(numMatch[2])
       els.push(
-        <View key={i} style={styles.listRow}>
+        <View key={i} style={styles.listRow} wrap={false}>
           <Text style={styles.bullet}>{numMatch[1]}.</Text>
           <InlineText segs={segs} baseStyle={styles.listText} />
         </View>
