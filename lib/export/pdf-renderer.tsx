@@ -166,8 +166,8 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     marginTop: 0,
-    marginBottom: 8,
-    lineHeight: 1.5,          // was 1.9 — tighter, professional legal-doc spacing
+    marginBottom: 0,
+    lineHeight: 1.3,
     textAlign: 'justify',
     color: BRAND.bodyText,
     fontSize: 10.5,
@@ -201,9 +201,9 @@ const styles = StyleSheet.create({
   },
   listRow: {
     flexDirection: 'row',
-    marginBottom: 5,           // was 6
+    marginBottom: 0,
     marginLeft: 14,
-    lineHeight: 1.5,           // was 1.7
+    lineHeight: 1.3,
   },
   bullet: {
     width: 18,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   listText: {
     flex: 1,
     fontSize: 10.5,
-    lineHeight: 1.5,          // was 1.8
+    lineHeight: 1.3,
     textAlign: 'justify',
     color: BRAND.bodyText,
     // NOTE: No fontFamily here — set per-segment so bold/italic overrides work in react-pdf v4
@@ -234,7 +234,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-BoldOblique',
   },
   space: {
-    height: 5,                // was 8 — trims extra blank-line/&nbsp; gaps
+    height: 8,
+  },
+  tinySpace: {
+    height: 2,                // used inside compact address blocks
   },
   signatureLine: {
     fontSize: 10.5,
@@ -242,6 +245,75 @@ const styles = StyleSheet.create({
     marginTop: 3,
     marginBottom: 3,
     letterSpacing: 0.3,
+  },
+  rightAlignedText: {
+    textAlign: 'right',
+    fontSize: 10.5,
+    color: BRAND.bodyText,
+    marginBottom: 4,
+  },
+
+  // ── Table (pipe-table markdown) ─────────────────────────────────────────────
+  tableWrapper: {
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: BRAND.sageLight,
+    borderTopWidth: 0.75,
+    borderTopColor: BRAND.divider,
+    borderBottomWidth: 0.75,
+    borderBottomColor: BRAND.divider,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: BRAND.divider,
+  },
+  tableRowAlt: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: BRAND.divider,
+    backgroundColor: '#f7f7f5',
+  },
+  tableCell: {
+    flex: 1,
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: BRAND.bodyText,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
+    borderRightWidth: 0.5,
+    borderRightColor: BRAND.divider,
+  },
+  tableCellLast: {
+    flex: 1,
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: BRAND.bodyText,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
+  },
+  tableHeaderCell: {
+    flex: 1,
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    lineHeight: 1.4,
+    color: BRAND.headingText,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
+    borderRightWidth: 0.5,
+    borderRightColor: BRAND.divider,
+  },
+  tableHeaderCellLast: {
+    flex: 1,
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    lineHeight: 1.4,
+    color: BRAND.headingText,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
   },
 
   // ── Footer (Exactly matching the template PDF) ──────────────────────────────
@@ -354,18 +426,131 @@ function InlineText({ segs, baseStyle }: { segs: Segment[]; baseStyle?: PDFStyle
   )
 }
 
+// ─── Pipe-table helpers ──────────────────────────────────────────────────────
+
+/**
+ * Split a markdown table row like "| **Col A** | Col B |" into trimmed cell strings.
+ * Strips outer pipes and empty edge segments.
+ */
+function splitTableRow(line: string): string[] {
+  return line
+    .split('|')
+    .slice(1, -1)  // remove empty strings from leading/trailing `|`
+    .map((cell) => cell.trim())
+}
+
+/** Returns true if a line is a markdown table separator row (e.g. "|---|---|---|") */
+function isSeparatorRow(line: string): boolean {
+  return /^\|\s*[-:]+[-|\s:]*\|\s*$/.test(line.trim())
+}
+
+/** Returns true if a line looks like a pipe-table row */
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim()
+  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2
+}
+
+/**
+ * Render a parsed 2-D table (array of rows, first row = header).
+ * Applies header styling, alternating row shading, and per-cell inline bold/italic.
+ */
+function renderTable(rows: string[][], key: number): React.ReactElement {
+  return (
+    <View key={key} style={styles.tableWrapper} wrap={false}>
+      {rows.map((cells, rowIdx) => {
+        const isHeader = rowIdx === 0
+        const rowStyle = isHeader
+          ? styles.tableHeaderRow
+          : rowIdx % 2 === 0
+          ? styles.tableRowAlt
+          : styles.tableRow
+
+        return (
+          <View key={rowIdx} style={rowStyle}>
+            {cells.map((cell, colIdx) => {
+              const isLast = colIdx === cells.length - 1
+              const cellStyle = isHeader
+                ? isLast ? styles.tableHeaderCellLast : styles.tableHeaderCell
+                : isLast ? styles.tableCellLast : styles.tableCell
+
+              // Parse inline markdown inside the cell
+              const segs = parseInline(cell)
+              return (
+                <View key={colIdx} style={cellStyle}>
+                  <InlineText
+                    segs={segs}
+                    baseStyle={isHeader ? { fontFamily: 'Helvetica-Bold' } as PDFStyle : undefined}
+                  />
+                </View>
+              )
+            })}
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
 // ─── Markdown → React-PDF elements ──────────────────────────────────────────
 function markdownToElements(markdown: string): React.ReactElement[] {
-  const lines = markdown.split('\n')
+  // Normalize: replace ₹ (U+20B9) with Rs. — Helvetica core font maps this
+  // codepoint to the superscript-1 glyph (¹) which looks broken in the PDF.
+  // All monetary amounts in the template use Rs. internally after this step.
+  const normalised = markdown.replace(/\u20b9/g, 'Rs.')
+
+  const lines = normalised.split('\n')
   const els: React.ReactElement[] = []
 
-  for (let i = 0; i < lines.length; i++) {
+  let i = 0
+  while (i < lines.length) {
     const line = lines[i]
     const trimmed = line.trim()
+
+    // ── Pipe-table detection ────────────────────────────────────────────────
+    // Collect consecutive table rows (including the separator row).
+    // Format: header row, separator row (|---|), then data rows.
+    if (isTableRow(trimmed)) {
+      const tableLines: string[] = []
+      while (i < lines.length && isTableRow(lines[i].trim())) {
+        tableLines.push(lines[i])
+        i++
+      }
+
+      // Parse into rows, skipping the separator
+      const rows: string[][] = []
+      for (const tl of tableLines) {
+        if (isSeparatorRow(tl)) continue
+        rows.push(splitTableRow(tl))
+      }
+
+      if (rows.length > 0) {
+        els.push(renderTable(rows, els.length))
+      }
+      continue  // i already advanced
+    }
 
     // ── Blank / spacing lines ───────────────────────────────────────────────
     if (trimmed === '' || trimmed === '&nbsp;') {
       els.push(<View key={i} style={styles.space} />)
+      i++
+      continue
+    }
+
+    // ── Tiny spacing — &thinsp; used in compact address blocks ──────────────
+    if (trimmed === '&thinsp;') {
+      els.push(<View key={i} style={styles.tinySpace} />)
+      i++
+      continue
+    }
+
+    // ── Right-aligned text (>> prefix) ─────────────────────────────────────
+    // Usage in templates: ">> **Date:** 16 July 2026" renders right-aligned.
+    if (line.startsWith('>> ')) {
+      const segs = parseInline(line.slice(3))
+      els.push(
+        <InlineText key={i} segs={segs} baseStyle={styles.rightAlignedText} />
+      )
+      i++
       continue
     }
 
@@ -378,22 +563,26 @@ function markdownToElements(markdown: string): React.ReactElement[] {
     if (line.startsWith('### ')) {
       const text = line.slice(4).trim()
       els.push(<Text key={i} style={styles.h3} minPresenceAhead={40}>{text}</Text>)
+      i++
       continue
     }
     if (line.startsWith('## ')) {
       const text = line.slice(3).trim()
       els.push(<Text key={i} style={styles.h2} minPresenceAhead={40}>{text}</Text>)
+      i++
       continue
     }
     if (line.startsWith('# ')) {
       const text = line.slice(2).trim()
       els.push(<Text key={i} style={styles.h1} minPresenceAhead={40}>{text}</Text>)
+      i++
       continue
     }
 
     // ── Horizontal rule ─────────────────────────────────────────────────────
     if (/^(-{3,}|\*{3,})$/.test(trimmed)) {
       els.push(<View key={i} style={styles.divider} />)
+      i++
       continue
     }
 
@@ -402,6 +591,7 @@ function markdownToElements(markdown: string): React.ReactElement[] {
       els.push(
         <Text key={i} style={styles.signatureLine}>{trimmed}</Text>
       )
+      i++
       continue
     }
 
@@ -412,6 +602,7 @@ function markdownToElements(markdown: string): React.ReactElement[] {
       els.push(
         <Text key={i} style={[styles.connectorLine, styles.bold]}>{connectorMatch[1]}</Text>
       )
+      i++
       continue
     }
 
@@ -424,6 +615,7 @@ function markdownToElements(markdown: string): React.ReactElement[] {
       els.push(
         <InlineText key={i} segs={segs} baseStyle={styles.openingLine} />
       )
+      i++
       continue
     }
 
@@ -441,6 +633,7 @@ function markdownToElements(markdown: string): React.ReactElement[] {
           <InlineText segs={segs} baseStyle={styles.listText} />
         </View>
       )
+      i++
       continue
     }
 
@@ -456,6 +649,7 @@ function markdownToElements(markdown: string): React.ReactElement[] {
           <InlineText segs={segs} baseStyle={styles.listText} />
         </View>
       )
+      i++
       continue
     }
 
@@ -464,6 +658,7 @@ function markdownToElements(markdown: string): React.ReactElement[] {
     els.push(
       <InlineText key={i} segs={segs} baseStyle={styles.paragraph} />
     )
+    i++
   }
 
   return els
