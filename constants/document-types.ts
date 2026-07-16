@@ -14,6 +14,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   salary_slip:         'Salary Slip',
   experience_letter:   'Experience Letter',
   appointment_letter:  'Appointment Letter',
+  offer_letter:        'Employment Offer Letter',
   certificate:         'Certificate',
 }
 
@@ -35,6 +36,7 @@ export const APPLICABLE_STATUS_MAP: Record<DocumentType, EmployeeStatus[]> = {
   salary_slip:         ['full-time', 'contract'],
   experience_letter:   ['resigned', 'terminated', 'full-time', 'contract'],
   appointment_letter:  ['full-time'],
+  offer_letter:        ['full-time', 'contract'],
   certificate:         ['intern'],
 }
 
