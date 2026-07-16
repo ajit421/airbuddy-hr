@@ -9,6 +9,7 @@ export type DocumentType =
   | 'salary_slip'
   | 'experience_letter'
   | 'appointment_letter'
+  | 'offer_letter'
   | 'certificate'
 
 export interface Template {
