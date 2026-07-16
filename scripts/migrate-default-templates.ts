@@ -11,6 +11,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { NDA_AGREEMENT_TEMPLATE } from '../lib/templates/nda-template'
+import { OFFER_LETTER_TEMPLATE } from '../lib/templates/offer-letter-template'
 
 // ── Load .env.local before importing Firebase Admin ───────────────────────────
 const envPath = path.resolve(process.cwd(), '.env.local')
@@ -349,6 +350,17 @@ Warm regards,
 **Employee Signature:** ________________________  
 **Date:** ________________________
 `,
+  },
+
+  // ── 7. Employment Offer Letter ─────────────────────────────────────────────
+  {
+    name: 'Employment Offer Letter',
+    type: 'offer_letter',
+    description: 'Formal employment offer letter for Full-Time and Contract employees. Covers all 16 standard clauses: position, JD, working hours, compensation, leave, employment term, probation, confidentiality, notice period, early-exit clause, statutory benefits, conflict of interest, background verification, documents required at joining, company policies, and acceptance block.',
+    applicableStatus: ['full-time', 'contract'],
+    isDefault: true,
+    isActive: true,
+    markdownContent: OFFER_LETTER_TEMPLATE,
   },
 ]
 
