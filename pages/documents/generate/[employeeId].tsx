@@ -68,12 +68,60 @@ const STEPS = ['Select Template', 'Review Variables', 'Edit Document', 'Export']
 const VARIABLE_OPTIONS: Record<string, string[]> = {
   work_mode: ['On-Site', 'Hybrid Model', 'Fully Remote'],
   work_type: ['Full-Time', 'Part-Time'],
+
+  // ── Offer Letter dropdowns ────────────────────────────────────────────────
+  employment_type: [
+    'Full-Time, On-Roll',
+    'Full-Time, Permanent',
+    'Contract',
+    'Part-Time',
+  ],
+  work_location: [
+    'Greater Noida, Uttar Pradesh',
+    'Remote',
+    'Hybrid – As Required',
+    'Other',
+  ],
+  place_of_posting: [
+    'B-43, Phi 3, Greater Noida, Uttar Pradesh – 201310',
+    'Remote / Work From Home',
+    'Hybrid',
+  ],
+  work_days: [
+    'Monday – Saturday',
+    'Monday – Friday',
+    'Monday – Sunday (Rotational)',
+  ],
+  weekly_off: ['Sunday', 'Saturday & Sunday', 'Rotational'],
+  probation_period: ['3 months', '6 months', '12 months'],
 }
 
 // Variables that should render as a multi-line textarea instead of a single-line input.
 // Add variable names here to give HR a bigger input area for long free-text fields.
 const VARIABLE_TEXTAREAS = new Set<string>([
   'project_description',  // NDA WHEREAS clause — HR types the project details
+  'jd_responsibilities',  // Offer Letter — newline-separated bullet-point responsibilities
+  'employee_address_full', // Offer Letter — full multi-line postal address
+])
+
+// ── Variable defaults ─────────────────────────────────────────────────────────
+// Pre-filled values shown to HR in Step 2. HR can still edit them before
+// clicking "Generate". Saves repeated entry of stable, company-wide values.
+const VARIABLE_DEFAULTS: Record<string, string> = {
+  place_of_posting:  '',
+}
+
+// ── Variables to hide from the Step 2 form ────────────────────────────────────
+// These are auto-computed by the generate API (e.g. annual = monthly × 12).
+// Showing them to HR would be confusing — they'll never need to fill them in.
+const VARIABLE_SKIP_IN_FORM = new Set<string>([
+  'annual_ctc',
+  'basic_salary_annual',
+  'hra_annual',
+  'special_allowance_annual',
+  'conveyance_annual',
+  'medical_allowance_annual',
+  'total_ctc',   // auto-summed from components
 ])
 
 // ── Step Indicator ─────────────────────────────────────────────────────────────
@@ -235,10 +283,27 @@ export default function GenerateDocPage() {
 
         setDocumentId(data.documentId)
         setMarkdownContent(data.markdownContent)
-        setMissingVariables(data.missingVariables ?? [])
 
-        // If nothing missing, auto-advance to step 3
-        if ((data.missingVariables ?? []).length === 0) {
+        const missing: string[] = data.missingVariables ?? []
+        setMissingVariables(missing)
+
+        // Pre-populate customVars with defaults for any missing variable that
+        // has a known default — HR sees them pre-filled and can adjust.
+        if (missing.length > 0) {
+          const initialVars: Record<string, string> = {}
+          for (const varName of missing) {
+            if (VARIABLE_DEFAULTS[varName]) {
+              initialVars[varName] = VARIABLE_DEFAULTS[varName]
+            }
+          }
+          setCustomVars(initialVars)
+        }
+
+        // If nothing missing (or only auto-computed vars left), auto-advance
+        const visibleMissing = (data.missingVariables ?? []).filter(
+          (v: string) => !VARIABLE_SKIP_IN_FORM.has(v)
+        )
+        if (visibleMissing.length === 0) {
           setStep(3)
         }
       } catch (err: unknown) {
@@ -592,7 +657,9 @@ export default function GenerateDocPage() {
                     </div>
 
                     <div className="rounded-xl border border-white/[0.08] bg-[#13161e] p-5 flex flex-col gap-4">
-                      {missingVariables.map((varName) => {
+                      {missingVariables
+                        .filter((v) => !VARIABLE_SKIP_IN_FORM.has(v))
+                        .map((varName) => {
                           const options = VARIABLE_OPTIONS[varName]
                           return (
                             <div key={varName}>

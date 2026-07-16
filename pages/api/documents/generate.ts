@@ -86,6 +86,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             mergedContent = mergedContent.replace(regex, value)
           }
         }
+
+        // ── Offer-letter salary auto-computation ──────────────────────────
+        // If this is an offer letter, compute annual values from monthly inputs
+        // so HR only has to fill in monthly figures.
+        if (template.type === 'offer_letter') {
+          /** Parse a string like "18,000" or "18000" to a number */
+          const parseMoney = (s: string | undefined): number => {
+            if (!s) return 0
+            return parseFloat(s.replace(/[^0-9.]/g, '')) || 0
+          }
+          /** Format a number as Indian locale string e.g. 18000 → "18,000" */
+          const fmt = (n: number): string =>
+            n.toLocaleString('en-IN', { maximumFractionDigits: 0 })
+
+          const basic   = parseMoney(customVariables['basic_salary'])
+          const hra     = parseMoney(customVariables['hra'])
+          const special = parseMoney(customVariables['special_allowance'])
+          const conv    = parseMoney(customVariables['conveyance'])
+          const medical = parseMoney(customVariables['medical_allowance'])
+
+          const monthlyTotal = basic + hra + special + conv + medical
+          const annualTotal  = monthlyTotal * 12
+
+          // Inject computed values if HR hasn't already supplied them
+          const computedVars: Record<string, string> = {
+            basic_salary_annual:     fmt(basic   * 12),
+            hra_annual:              fmt(hra     * 12),
+            special_allowance_annual: fmt(special * 12),
+            conveyance_annual:       fmt(conv    * 12),
+            medical_allowance_annual: fmt(medical * 12),
+          }
+          // total_ctc = sum of monthly components (override if auto-computed)
+          if (monthlyTotal > 0) {
+            computedVars['total_ctc'] = fmt(monthlyTotal)
+          }
+          // annual_ctc = total_ctc * 12
+          if (annualTotal > 0) {
+            computedVars['annual_ctc'] = fmt(annualTotal)
+          }
+
+          for (const [key, value] of Object.entries(computedVars)) {
+            const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g')
+            mergedContent = mergedContent.replace(regex, value)
+          }
+        }
+        // ── End offer-letter computation ────────────────────────────────────
+
         const fillRes = fillVariables(mergedContent, employee, settings)
         markdownContent = fillRes.result
         missingVariables = fillRes.missing
