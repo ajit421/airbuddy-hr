@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { DEPARTMENTS } from '@/constants/departments'
+
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -251,12 +251,7 @@ export default function NewEmployeePage() {
           {/* Employment */}
           <Section title="Employment Details">
             <Field label="Department" required error={errors.department?.message}>
-              <FormSelect
-                value={watch('department') ?? ''}
-                onValueChange={(v) => setValue('department', v)}
-                options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
-                placeholder="Select department"
-              />
+              <FormInput id="department" placeholder="e.g. Software Engineering" {...register('department')} />
             </Field>
             <Field label="Designation" required error={errors.designation?.message}>
               <FormInput id="designation" placeholder="e.g. Software Engineer" {...register('designation')} />

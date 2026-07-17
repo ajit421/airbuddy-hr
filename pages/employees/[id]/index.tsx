@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { DEPARTMENTS } from '@/constants/departments'
+
 import { getDocumentTypeLabel } from '@/constants/document-types'
 import type { Employee, EmployeeStatus } from '@/types/employee'
 import type { DocumentRecord } from '@/types/document'
@@ -402,8 +402,7 @@ export default function EmployeeDetailPage() {
                   <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Employment</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <EditInput label="Department *" error={errors.department?.message}>
-                      <ESelect value={watch('department') ?? ''} onValueChange={(v) => setValue('department', v)}
-                        options={DEPARTMENTS.map((d) => ({ value: d, label: d }))} />
+                      <Input {...register('department')} placeholder="e.g. Software Engineering" className={inputCls} />
                     </EditInput>
                     <EditInput label="Designation *" error={errors.designation?.message}>
                       <Input {...register('designation')} className={inputCls} />
