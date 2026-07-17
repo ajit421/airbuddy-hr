@@ -1,6 +1,8 @@
-// lib/export/pdf-renderer.tsx
-// React-PDF document component + markdown-to-elements converter.
-// This file MUST be .tsx because it uses JSX with @react-pdf/renderer.
+// lib/export/offer-letter-pdf-renderer.tsx
+// React-PDF document component for the Employment Offer Letter.
+// SELF-CONTAINED — no imports from any other document-specific renderer.
+// Edit this file freely; changes here will NOT affect NDA, Internship Letters,
+// Salary Slips, Experience Letters, or Appointment Letters.
 //
 // Letterhead design:
 //   Header (fixed, every page):
@@ -21,7 +23,6 @@
 //      spacers so the document flows more compactly across pages.
 //   4. Reduced letter-spacing/word-spacing on justified paragraphs to avoid
 //      uneven gaps between words on short lines.
-
 import React from 'react'
 import path from 'path'
 import fs from 'fs'
@@ -39,16 +40,10 @@ import {
   Line,
   Font,
 } from '@react-pdf/renderer'
-
 // ─── Disable automatic hyphenation ────────────────────────────────────────────
-// react-pdf hyphenates long words by default when wrapping justified text,
-// which produces broken words like "reg-istered". For legal documents we
-// never want mid-word breaks — force the callback to return the word whole.
 Font.registerHyphenationCallback((word) => [word])
-
 // Type alias for a single react-pdf style object
 type PDFStyle = ReturnType<typeof StyleSheet.create>[string]
-
 // ─── Logo Image Loader (Server-side base64 fallback) ─────────────────────────
 const LOGO_PATH = path.join(process.cwd(), 'public', 'logo.png')
 let logoBase64 = ''
@@ -58,9 +53,8 @@ try {
     logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`
   }
 } catch (err) {
-  console.error('Failed to load logo image to base64:', err)
+  console.error('[offer-letter-pdf-renderer] Failed to load logo image to base64:', err)
 }
-
 // ─── Brand constants ──────────────────────────────────────────────────────────
 const BRAND = {
   sageLight:   '#b5bbb2',   // Light Sage Gray/Green for header and footer accent
@@ -70,7 +64,6 @@ const BRAND = {
   white:       '#ffffff',
   divider:     '#cccccc',
 } as const
-
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   page: {
@@ -81,7 +74,6 @@ const styles = StyleSheet.create({
     color: BRAND.bodyText,
     fontFamily: 'Helvetica',
   },
-
   // ── Header (Exactly matching the template PDF) ──────────────────────
   headerContainer: {
     position: 'absolute',
@@ -138,7 +130,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1.2,
   },
-
   // ── Body typography — legal document style ───────────────────────────────────
   h1: {
     fontSize: 15,
@@ -182,9 +173,7 @@ const styles = StyleSheet.create({
     color: BRAND.bodyText,
     fontSize: 10.5,
   },
-  // Opening recital line ("THIS NON-DISCLOSURE AGREEMENT...IS MADE...") —
-  // slightly smaller font + tighter letter-spacing so the date/title clause
-  // fits on a single line instead of wrapping awkwardly.
+  // Opening recital line — slightly smaller font + tighter letter-spacing
   openingLine: {
     marginTop: 0,
     marginBottom: 8,
@@ -197,7 +186,7 @@ const styles = StyleSheet.create({
   divider: {
     borderBottomWidth: 0.75,
     borderBottomColor: BRAND.divider,
-    marginVertical: 10,        // was 14
+    marginVertical: 10,
   },
   listRow: {
     flexDirection: 'row',
@@ -252,7 +241,6 @@ const styles = StyleSheet.create({
     color: BRAND.bodyText,
     marginBottom: 4,
   },
-
   // ── Table (pipe-table markdown) ─────────────────────────────────────────────
   tableWrapper: {
     marginTop: 8,
@@ -315,7 +303,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 7,
   },
-
   // ── Footer (Exactly matching the template PDF) ──────────────────────────────
   footerContainer: {
     position: 'absolute',
@@ -347,12 +334,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
   },
 })
-
-
-
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
 const PhoneIcon = () => (
   <Svg width="15" height="15" viewBox="0 0 24 24" style={{ alignSelf: 'center' }}>
-    {/* <Circle cx="12" cy="12" r="11" fill="none" stroke="#ffffff" strokeWidth="1.8" /> */}
     <Path
       d="M14.05 6C15.0268 6.19057 15.9244 6.66826 16.6281 7.37194C17.3318 8.07561 17.8095 8.97326 18 9.95M14.05 2C16.0793 2.22544 17.9716 3.13417 19.4163 4.57701C20.8609 6.01984 21.7721 7.91101 22 9.94M18.5 21C9.93959 21 3 14.0604 3 5.5C3 5.11378 3.01413 4.73086 3.04189 4.35173C3.07375 3.91662 3.08968 3.69907 3.2037 3.50103C3.29814 3.33701 3.4655 3.18146 3.63598 3.09925C3.84181 3 4.08188 3 4.56201 3H7.37932C7.78308 3 7.98496 3 8.15802 3.06645C8.31089 3.12515 8.44701 3.22049 8.55442 3.3441C8.67601 3.48403 8.745 3.67376 8.88299 4.05321L10.0491 7.26005C10.2096 7.70153 10.2899 7.92227 10.2763 8.1317C10.2643 8.31637 10.2012 8.49408 10.0942 8.64506C9.97286 8.81628 9.77145 8.93713 9.36863 9.17882L8 10C9.2019 12.6489 11.3501 14.7999 14 16L14.8212 14.6314C15.0629 14.2285 15.1837 14.0271 15.3549 13.9058C15.5059 13.7988 15.6836 13.7357 15.8683 13.7237C16.0777 13.7101 16.2985 13.7904 16.74 13.9509L19.9468 15.117C20.3262 15.255 20.516 15.324 20.6559 15.4456C20.7795 15.553 20.8749 15.6891 20.9335 15.842C21 16.015 21 16.2169 21 16.6207V19.438C21 19.9181 21 20.1582 20.9007 20.364C20.8185 20.5345 20.663 20.7019 20.499 20.7963C20.3009 20.9103 20.0834 20.9262 19.6483 20.9581C19.2691 20.9859 18.8862 21 18.5 21Z"
       fill="none"
@@ -363,14 +347,12 @@ const PhoneIcon = () => (
     />
   </Svg>
 )
-
 const MailIcon = () => (
   <Svg width="15" height="15" viewBox="0 0 14 14" style={{ alignSelf: 'center' }}>
     <Rect x="1" y="3.5" width="12" height="7" rx="1" fill="none" stroke="#ffffff" strokeWidth="1.2" />
     <Path d="M1 4.5 L7 8 L13 4.5" fill="none" stroke="#ffffff" strokeWidth="1.2" />
   </Svg>
 )
-
 const GlobeIcon = () => (
   <Svg width="15" height="15" viewBox="0 0 14 14" style={{ alignSelf: 'center' }}>
     <Circle cx="7" cy="7" r="6" fill="none" stroke="#ffffff" strokeWidth="1.2" />
@@ -378,14 +360,10 @@ const GlobeIcon = () => (
     <Path d="M7 1 C9 3 9.5 5 9.5 7 C9.5 9 9 11 7 13 C5 11 4.5 9 4.5 7 C4.5 5 5 3 7 1 Z" fill="none" stroke="#ffffff" strokeWidth="1.2" />
   </Svg>
 )
-
 // ─── Inline text parser ──────────────────────────────────────────────────────
 interface Segment { text: string; bold: boolean; italic: boolean }
-
 function parseInline(line: string): Segment[] {
   const segs: Segment[] = []
-  // Matches ***bold+italic***, **bold**, *italic*, `code`
-  // \s* around markers allows bold adjacent to punctuation: (**text**) or "**text**"
   const re = /\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*([^*]+?)\*/g
   let last = 0
   let m: RegExpExecArray | null
@@ -399,21 +377,12 @@ function parseInline(line: string): Segment[] {
   if (last < line.length) segs.push({ text: line.slice(last), bold: false, italic: false })
   return segs
 }
-
-// Always returns an explicit fontFamily so react-pdf v4 can never fall back to an
-// inherited fontFamily from the parent <Text> — that parent override is the root
-// cause of bold/italic not rendering.
 function segmentStyle(s: Segment): PDFStyle {
   if (s.bold && s.italic) return styles.boldItalic
   if (s.bold)             return styles.bold
   if (s.italic)           return styles.italic
-  return styles.segNormal  // explicit 'Helvetica' — never empty
+  return styles.segNormal
 }
-
-// Renders a line of parsed inline segments.
-// IMPORTANT: baseStyle must NOT contain a fontFamily because react-pdf v4
-// prevents child <Text> fontFamily from overriding an ancestor fontFamily.
-// Each segment receives segmentStyle which always provides an explicit fontFamily.
 function InlineText({ segs, baseStyle }: { segs: Segment[]; baseStyle?: PDFStyle }) {
   return (
     <Text style={baseStyle}>
@@ -425,35 +394,17 @@ function InlineText({ segs, baseStyle }: { segs: Segment[]; baseStyle?: PDFStyle
     </Text>
   )
 }
-
 // ─── Pipe-table helpers ──────────────────────────────────────────────────────
-
-/**
- * Split a markdown table row like "| **Col A** | Col B |" into trimmed cell strings.
- * Strips outer pipes and empty edge segments.
- */
 function splitTableRow(line: string): string[] {
-  return line
-    .split('|')
-    .slice(1, -1)  // remove empty strings from leading/trailing `|`
-    .map((cell) => cell.trim())
+  return line.split('|').slice(1, -1).map((cell) => cell.trim())
 }
-
-/** Returns true if a line is a markdown table separator row (e.g. "|---|---|---|") */
 function isSeparatorRow(line: string): boolean {
   return /^\|\s*[-:]+[-|\s:]*\|\s*$/.test(line.trim())
 }
-
-/** Returns true if a line looks like a pipe-table row */
 function isTableRow(line: string): boolean {
   const trimmed = line.trim()
   return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2
 }
-
-/**
- * Render a parsed 2-D table (array of rows, first row = header).
- * Applies header styling, alternating row shading, and per-cell inline bold/italic.
- */
 function renderTable(rows: string[][], key: number): React.ReactElement {
   return (
     <View key={key} style={styles.tableWrapper} wrap={false}>
@@ -464,7 +415,6 @@ function renderTable(rows: string[][], key: number): React.ReactElement {
           : rowIdx % 2 === 0
           ? styles.tableRowAlt
           : styles.tableRow
-
         return (
           <View key={rowIdx} style={rowStyle}>
             {cells.map((cell, colIdx) => {
@@ -472,8 +422,6 @@ function renderTable(rows: string[][], key: number): React.ReactElement {
               const cellStyle = isHeader
                 ? isLast ? styles.tableHeaderCellLast : styles.tableHeaderCell
                 : isLast ? styles.tableCellLast : styles.tableCell
-
-              // Parse inline markdown inside the cell
               const segs = parseInline(cell)
               return (
                 <View key={colIdx} style={cellStyle}>
@@ -490,141 +438,72 @@ function renderTable(rows: string[][], key: number): React.ReactElement {
     </View>
   )
 }
-
 // ─── Markdown → React-PDF elements ──────────────────────────────────────────
 function markdownToElements(markdown: string): React.ReactElement[] {
-  // Normalize: replace ₹ (U+20B9) with Rs. — Helvetica core font maps this
-  // codepoint to the superscript-1 glyph (¹) which looks broken in the PDF.
-  // All monetary amounts in the template use Rs. internally after this step.
   const normalised = markdown.replace(/\u20b9/g, 'Rs.')
-
   const lines = normalised.split('\n')
   const els: React.ReactElement[] = []
-
   let i = 0
   while (i < lines.length) {
     const line = lines[i]
     const trimmed = line.trim()
-
-    // ── Pipe-table detection ────────────────────────────────────────────────
-    // Collect consecutive table rows (including the separator row).
-    // Format: header row, separator row (|---|), then data rows.
     if (isTableRow(trimmed)) {
       const tableLines: string[] = []
       while (i < lines.length && isTableRow(lines[i].trim())) {
         tableLines.push(lines[i])
         i++
       }
-
-      // Parse into rows, skipping the separator
       const rows: string[][] = []
       for (const tl of tableLines) {
         if (isSeparatorRow(tl)) continue
         rows.push(splitTableRow(tl))
       }
-
-      if (rows.length > 0) {
-        els.push(renderTable(rows, els.length))
-      }
-      continue  // i already advanced
+      if (rows.length > 0) els.push(renderTable(rows, els.length))
+      continue
     }
-
-    // ── Blank / spacing lines ───────────────────────────────────────────────
     if (trimmed === '' || trimmed === '&nbsp;') {
       els.push(<View key={i} style={styles.space} />)
-      i++
-      continue
+      i++; continue
     }
-
-    // ── Tiny spacing — &thinsp; used in compact address blocks ──────────────
     if (trimmed === '&thinsp;') {
       els.push(<View key={i} style={styles.tinySpace} />)
-      i++
-      continue
+      i++; continue
     }
-
-    // ── Right-aligned text (>> prefix) ─────────────────────────────────────
-    // Usage in templates: ">> **Date:** 16 July 2026" renders right-aligned.
     if (line.startsWith('>> ')) {
       const segs = parseInline(line.slice(3))
-      els.push(
-        <InlineText key={i} segs={segs} baseStyle={styles.rightAlignedText} />
-      )
-      i++
-      continue
+      els.push(<InlineText key={i} segs={segs} baseStyle={styles.rightAlignedText} />)
+      i++; continue
     }
-
-    // ── Headings — always bold by their own style; do NOT pass through InlineText
-    // because segNormal would override the heading fontFamily with 'Helvetica'.
-    // minPresenceAhead ensures the heading only prints if at least that much
-    // space remains on the current page — otherwise react-pdf pushes the
-    // whole heading to the next page instead of leaving it orphaned alone
-    // at the bottom with its body text starting on the following page.
     if (line.startsWith('### ')) {
-      const text = line.slice(4).trim()
-      els.push(<Text key={i} style={styles.h3} minPresenceAhead={40}>{text}</Text>)
-      i++
-      continue
+      els.push(<Text key={i} style={styles.h3} minPresenceAhead={40}>{line.slice(4).trim()}</Text>)
+      i++; continue
     }
     if (line.startsWith('## ')) {
-      const text = line.slice(3).trim()
-      els.push(<Text key={i} style={styles.h2} minPresenceAhead={40}>{text}</Text>)
-      i++
-      continue
+      els.push(<Text key={i} style={styles.h2} minPresenceAhead={40}>{line.slice(3).trim()}</Text>)
+      i++; continue
     }
     if (line.startsWith('# ')) {
-      const text = line.slice(2).trim()
-      els.push(<Text key={i} style={styles.h1} minPresenceAhead={40}>{text}</Text>)
-      i++
-      continue
+      els.push(<Text key={i} style={styles.h1} minPresenceAhead={40}>{line.slice(2).trim()}</Text>)
+      i++; continue
     }
-
-    // ── Horizontal rule ─────────────────────────────────────────────────────
     if (/^(-{3,}|\*{3,})$/.test(trimmed)) {
       els.push(<View key={i} style={styles.divider} />)
-      i++
-      continue
+      i++; continue
     }
-
-    // ── Signature / underline lines (e.g. _________________________) ─────────
     if (/^_{3,}$/.test(trimmed)) {
-      els.push(
-        <Text key={i} style={styles.signatureLine}>{trimmed}</Text>
-      )
-      i++
-      continue
+      els.push(<Text key={i} style={styles.signatureLine}>{trimmed}</Text>)
+      i++; continue
     }
-
-    // ── Connector lines: "BY AND BETWEEN" / "AND" — always centered, never justified ──
-    // Matches the line whether wrapped in **bold** markdown or plain text.
     const connectorMatch = trimmed.match(/^\*{0,2}(BY AND BETWEEN|AND)\*{0,2}$/)
     if (connectorMatch) {
-      els.push(
-        <Text key={i} style={[styles.connectorLine, styles.bold]}>{connectorMatch[1]}</Text>
-      )
-      i++
-      continue
+      els.push(<Text key={i} style={[styles.connectorLine, styles.bold]}>{connectorMatch[1]}</Text>)
+      i++; continue
     }
-
-    // ── Opening recital line: "THIS NON-DISCLOSURE AGREEMENT (...) IS MADE AND
-    // ENTERED INTO AS OF <date>" — rendered at a slightly smaller size so the
-    // full clause (including the date) fits on a single line instead of
-    // wrapping mid-sentence.
     if (/^THIS NON-DISCLOSURE AGREEMENT/i.test(trimmed)) {
       const segs = parseInline(line)
-      els.push(
-        <InlineText key={i} segs={segs} baseStyle={styles.openingLine} />
-      )
-      i++
-      continue
+      els.push(<InlineText key={i} segs={segs} baseStyle={styles.openingLine} />)
+      i++; continue
     }
-
-    // ── Bullet list (- or *) ────────────────────────────────────────────────
-    // wrap={false} is CRITICAL here: without it, react-pdf can split this row
-    // mid-item across a page break — the bullet number renders on one page and
-    // its text renders alone on the next page with no number. wrap={false}
-    // forces the entire row to move to the next page as one unbroken unit if
-    // it doesn't fit in the remaining space on the current page.
     if (line.startsWith('- ') || line.startsWith('* ')) {
       const segs = parseInline(line.slice(2))
       els.push(
@@ -633,13 +512,8 @@ function markdownToElements(markdown: string): React.ReactElement[] {
           <InlineText segs={segs} baseStyle={styles.listText} />
         </View>
       )
-      i++
-      continue
+      i++; continue
     }
-
-    // ── Numbered list (1. 2. 3. …) ──────────────────────────────────────────
-    // Same wrap={false} protection as the bullet list above — keeps the
-    // number and its full text glued together across page breaks.
     const numMatch = line.match(/^(\d+)\.\s(.*)$/)
     if (numMatch) {
       const segs = parseInline(numMatch[2])
@@ -649,26 +523,18 @@ function markdownToElements(markdown: string): React.ReactElement[] {
           <InlineText segs={segs} baseStyle={styles.listText} />
         </View>
       )
-      i++
-      continue
+      i++; continue
     }
-
-    // ── Plain paragraph (default) ────────────────────────────────────────────
     const segs = parseInline(line)
-    els.push(
-      <InlineText key={i} segs={segs} baseStyle={styles.paragraph} />
-    )
+    els.push(<InlineText key={i} segs={segs} baseStyle={styles.paragraph} />)
     i++
   }
-
   return els
 }
-
-// ─── Shared Header component ─────────────────────────────────────────────────
+// ─── Letterhead Header ────────────────────────────────────────────────────────
 function LetterheadHeader() {
   return (
     <View style={styles.headerContainer} fixed>
-      {/* Top row containing left sage band, white cutout, right sage address band */}
       <View style={styles.headerTopRow}>
         <View style={styles.headerLeftBand} />
         <View style={styles.headerLogoCutout} />
@@ -678,8 +544,6 @@ function LetterheadHeader() {
           </Text>
         </View>
       </View>
-
-      {/* Floating Logo + Centered Wordmark */}
       <View style={styles.logoWrapper}>
         {logoBase64 ? (
           <Image src={logoBase64} style={styles.logoImage} />
@@ -692,12 +556,10 @@ function LetterheadHeader() {
     </View>
   )
 }
-
-// ─── Shared Footer component ─────────────────────────────────────────────────
+// ─── Letterhead Footer ────────────────────────────────────────────────────────
 function LetterheadFooter() {
   return (
     <View style={styles.footerContainer} fixed>
-      {/* Dark charcoal contact details band */}
       <View style={styles.footerDarkBand}>
         <View style={styles.footerItem}>
           <PhoneIcon />
@@ -712,31 +574,25 @@ function LetterheadFooter() {
           <Text style={styles.footerText}>Website: www.airbuddy.in</Text>
         </View>
       </View>
-
-      {/* Bottom sage accent band */}
       <View style={styles.footerLightBand} />
     </View>
   )
 }
-
-// ─── Exported PDF Document component ────────────────────────────────────────
-export interface HRDocumentProps {
+// ─── Exported PDF Document component ─────────────────────────────────────────
+export interface OfferLetterDocumentProps {
   companyName: string
   documentTitle: string
   markdownContent: string
   dateStr: string
 }
-
-export function HRPdfDocument({ companyName, documentTitle, markdownContent }: HRDocumentProps) {
+export function OfferLetterPdfDocument({ companyName, documentTitle, markdownContent }: OfferLetterDocumentProps) {
   return (
     <Document title={documentTitle} author={companyName} creator="AirBuddy HR Platform">
       <Page size="A4" style={styles.page}>
         {/* Letterhead header — fixed on every page */}
         <LetterheadHeader />
-
         {/* Document body — templates begin with their own # heading */}
         {markdownToElements(markdownContent)}
-
         {/* Letterhead footer — fixed on every page */}
         <LetterheadFooter />
       </Page>

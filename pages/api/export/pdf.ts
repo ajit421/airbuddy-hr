@@ -16,7 +16,13 @@ import { withAuth } from '@/lib/api-middleware'
 import { adminDb } from '@/lib/firebase/admin'
 import { createAuditLog } from '@/lib/audit/logger'
 import { downloadBuffer, uploadBuffer } from '@/lib/cloudinary/storage-helpers'
-import { HRPdfDocument } from '@/lib/export/pdf-renderer'
+// ── Per-document-type PDF renderers (each self-contained, no shared file) ──
+import { OfferLetterPdfDocument }      from '@/lib/export/offer-letter-pdf-renderer'
+import { NDAPdfDocument }              from '@/lib/export/nda-pdf-renderer'
+import { InternshipLetterPdfDocument } from '@/lib/export/internship-letter-pdf-renderer'
+import { SalarySlipPdfDocument }       from '@/lib/export/salary-slip-pdf-renderer'
+import { ExperienceLetterPdfDocument } from '@/lib/export/experience-letter-pdf-renderer'
+import { AppointmentLetterPdfDocument }from '@/lib/export/appointment-letter-pdf-renderer'
 import { renderCertificatePdf } from '@/lib/certificates/render-certificate'
 import { generateFileName } from '@/lib/export/file-naming'
 import type { CertificateTemplate } from '@/types/template'
@@ -128,14 +134,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         pdfBuffer = await renderCertificatePdf(certTemplate, certData, markdownContent)
 
       } else {
-        // ── Standard markdown path ─────────────────────────────────────────
+        // ── Standard markdown path — route to the per-type renderer ──────────
+        // Each document type has its own self-contained renderer file so that
+        // style changes to one type (e.g. NDA) never affect another (e.g. Offer Letter).
+        const docProps = { companyName, documentTitle, markdownContent, dateStr }
+
+        type MarkdownRendererFn = (props: typeof docProps) => React.ReactElement
+        const MARKDOWN_RENDERERS: Record<string, MarkdownRendererFn> = {
+          offer_letter:        (p) => React.createElement(OfferLetterPdfDocument,       p),
+          nda:                 (p) => React.createElement(NDAPdfDocument,               p),
+          internship_letter:   (p) => React.createElement(InternshipLetterPdfDocument,  p),
+          salary_slip:         (p) => React.createElement(SalarySlipPdfDocument,        p),
+          experience_letter:   (p) => React.createElement(ExperienceLetterPdfDocument,  p),
+          appointment_letter:  (p) => React.createElement(AppointmentLetterPdfDocument, p),
+        }
+
+        const renderFn = MARKDOWN_RENDERERS[resolvedDocumentType] ?? MARKDOWN_RENDERERS['offer_letter']
         pdfBuffer = await renderToBuffer(
-          React.createElement(HRPdfDocument, {
-            companyName,
-            documentTitle,
-            markdownContent,
-            dateStr,
-          }) as React.ReactElement<DocumentProps>
+          renderFn(docProps) as React.ReactElement<DocumentProps>
         )
       }
 
