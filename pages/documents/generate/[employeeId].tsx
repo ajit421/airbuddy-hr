@@ -83,7 +83,7 @@ const VARIABLE_OPTIONS: Record<string, string[]> = {
     'Other',
   ],
   place_of_posting: [
-    'B-43, Phi 3, Greater Noida, Uttar Pradesh – 201310',
+    'B-42, Phi 4, Greater Noida, Uttar Pradesh – 201310',
     'Remote / Work From Home',
     'Hybrid',
   ],
@@ -108,7 +108,7 @@ const VARIABLE_TEXTAREAS = new Set<string>([
 // Pre-filled values shown to HR in Step 2. HR can still edit them before
 // clicking "Generate". Saves repeated entry of stable, company-wide values.
 const VARIABLE_DEFAULTS: Record<string, string> = {
-  place_of_posting:  '',
+  place_of_posting: '',
 }
 
 // ── Variables to hide from the Step 2 form ────────────────────────────────────
@@ -137,29 +137,26 @@ function StepIndicator({ current }: { current: number }) {
           <div key={label} className="flex items-center">
             <div className="flex flex-col items-center">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
-                  isDone
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${isDone
                     ? 'bg-indigo-600 border-indigo-600 text-white'
                     : isActive
-                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                    : 'bg-white/[0.04] border-white/10 text-slate-500'
-                }`}
+                      ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                      : 'bg-white/[0.04] border-white/10 text-slate-500'
+                  }`}
               >
                 {isDone ? <Check className="w-4 h-4" /> : stepNum}
               </div>
               <span
-                className={`text-xs mt-1.5 whitespace-nowrap ${
-                  isActive ? 'text-white font-medium' : isDone ? 'text-indigo-400' : 'text-slate-600'
-                }`}
+                className={`text-xs mt-1.5 whitespace-nowrap ${isActive ? 'text-white font-medium' : isDone ? 'text-indigo-400' : 'text-slate-600'
+                  }`}
               >
                 {label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
               <div
-                className={`h-px w-16 mx-2 mb-5 transition-all ${
-                  isDone ? 'bg-indigo-600' : 'bg-white/[0.08]'
-                }`}
+                className={`h-px w-16 mx-2 mb-5 transition-all ${isDone ? 'bg-indigo-600' : 'bg-white/[0.08]'
+                  }`}
               />
             )}
           </div>
@@ -247,8 +244,8 @@ export default function GenerateDocPage() {
 
   const filteredTemplates = employee
     ? templates.filter(
-        (t) => t.isActive && t.applicableStatus.includes(employee.status)
-      )
+      (t) => t.isActive && t.applicableStatus.includes(employee.status)
+    )
     : []
 
   // All active templates (ignoring status filter)
@@ -528,11 +525,10 @@ export default function GenerateDocPage() {
               <button
                 id="btn-toggle-all-templates"
                 onClick={() => setShowAllTemplates((v) => !v)}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${
-                  showAllTemplates
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${showAllTemplates
                     ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-300'
                     : 'bg-white/[0.04] border-white/[0.08] text-slate-400 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5" />
                 {showAllTemplates ? 'Showing all' : 'Show all'}
@@ -593,11 +589,10 @@ export default function GenerateDocPage() {
                       key={template.id}
                       id={`btn-select-template-${template.id}`}
                       onClick={() => handleSelectTemplate(template)}
-                      className={`text-left rounded-xl border p-5 transition-all group ${
-                        isApplicable
+                      className={`text-left rounded-xl border p-5 transition-all group ${isApplicable
                           ? 'border-white/[0.08] bg-[#13161e] hover:border-indigo-500/40 hover:bg-indigo-600/5'
                           : 'border-white/[0.05] bg-[#0e1017] hover:border-white/[0.12] opacity-70'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <span className="text-white font-medium group-hover:text-indigo-300 transition-colors">
@@ -857,14 +852,12 @@ export default function GenerateDocPage() {
               <button
                 id="toggle-signature"
                 onClick={() => setAddSignature((v) => !v)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${
-                  addSignature ? 'bg-indigo-600' : 'bg-white/10'
-                }`}
+                className={`relative w-11 h-6 rounded-full transition-colors ${addSignature ? 'bg-indigo-600' : 'bg-white/10'
+                  }`}
               >
                 <span
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                    addSignature ? 'translate-x-6' : 'translate-x-1'
-                  }`}
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${addSignature ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
             </div>
