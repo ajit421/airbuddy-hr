@@ -19,10 +19,6 @@ import { downloadBuffer, uploadBuffer } from '@/lib/cloudinary/storage-helpers'
 // ── Per-document-type PDF renderers (each self-contained, no shared file) ──
 import { OfferLetterPdfDocument }      from '@/lib/export/offer-letter-pdf-renderer'
 import { NDAPdfDocument }              from '@/lib/export/nda-pdf-renderer'
-import { InternshipLetterPdfDocument } from '@/lib/export/internship-letter-pdf-renderer'
-import { SalarySlipPdfDocument }       from '@/lib/export/salary-slip-pdf-renderer'
-import { ExperienceLetterPdfDocument } from '@/lib/export/experience-letter-pdf-renderer'
-import { AppointmentLetterPdfDocument }from '@/lib/export/appointment-letter-pdf-renderer'
 import { renderCertificatePdf } from '@/lib/certificates/render-certificate'
 import { generateFileName } from '@/lib/export/file-naming'
 import type { CertificateTemplate } from '@/types/template'
@@ -141,12 +137,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         type MarkdownRendererFn = (props: typeof docProps) => React.ReactElement
         const MARKDOWN_RENDERERS: Record<string, MarkdownRendererFn> = {
-          offer_letter:        (p) => React.createElement(OfferLetterPdfDocument,       p),
-          nda:                 (p) => React.createElement(NDAPdfDocument,               p),
-          internship_letter:   (p) => React.createElement(InternshipLetterPdfDocument,  p),
-          salary_slip:         (p) => React.createElement(SalarySlipPdfDocument,        p),
-          experience_letter:   (p) => React.createElement(ExperienceLetterPdfDocument,  p),
-          appointment_letter:  (p) => React.createElement(AppointmentLetterPdfDocument, p),
+          offer_letter: (p) => React.createElement(OfferLetterPdfDocument, p),
+          nda:          (p) => React.createElement(NDAPdfDocument,          p),
         }
 
         const renderFn = MARKDOWN_RENDERERS[resolvedDocumentType] ?? MARKDOWN_RENDERERS['offer_letter']

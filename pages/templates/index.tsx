@@ -52,13 +52,9 @@ const STATUS_LABELS: Record<EmployeeStatus, string> = {
 }
 
 const DOC_TYPE_COLORS: Record<DocumentType, string> = {
-  nda:                 'bg-violet-500/15 text-violet-400 border-violet-500/25',
-  internship_letter:   'bg-sky-500/15 text-sky-400 border-sky-500/25',
-  salary_slip:         'bg-teal-500/15 text-teal-400 border-teal-500/25',
-  experience_letter:   'bg-orange-500/15 text-orange-400 border-orange-500/25',
-  appointment_letter:  'bg-pink-500/15 text-pink-400 border-pink-500/25',
-  offer_letter:        'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
-  certificate:         'bg-amber-500/15 text-amber-400 border-amber-500/25',
+  nda:          'bg-violet-500/15 text-violet-400 border-violet-500/25',
+  offer_letter: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
+  certificate:  'bg-amber-500/15 text-amber-400 border-amber-500/25',
 }
 
 function DocTypeBadge({ type }: { type: DocumentType }) {
