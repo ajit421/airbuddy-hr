@@ -47,7 +47,7 @@ function isOverloadError(err: unknown): boolean {
  * gemini-1.5-flash if gemini-2.5-flash is overloaded (503).
  *
  * @param markdownContent - The raw markdown to improve
- * @param documentType    - e.g. "offer_letter", "nda", "salary_slip"
+ * @param documentType    - e.g. "offer_letter", "nda", "certificate"
  */
 export async function improveDocument(
   markdownContent: string,

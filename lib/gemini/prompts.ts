@@ -86,37 +86,6 @@ If any field is completely unreadable or absent, return "" for that field. Never
  * under Indian employment law and standard HR practices.
  */
 const DOCUMENT_TYPE_CLAUSES: Record<string, string> = {
-  internship_letter: `Standard clauses to verify are present in an Indian internship appointment letter:
-  - Internship duration (start and end date)
-  - Stipend amount (or "unpaid internship" if applicable)
-  - Working hours and days
-  - Non-disclosure / confidentiality clause
-  - IP ownership: work produced belongs to the company
-  - No employee benefits during internship (no PF, ESI, gratuity)
-  - Certificate of completion clause (issued on satisfactory completion)
-  - Code of conduct reference`,
-
-  appointment_letter: `Standard clauses to verify are present in an Indian appointment/confirmation letter:
-  - Confirmation of employment after probation
-  - Designation, grade, and department
-  - CTC / salary structure (Basic, HRA, Special Allowance, etc.)
-  - Working hours (reference to Shops & Establishments Act if applicable)
-  - Statutory benefits: PF, ESI, Gratuity entitlement
-  - Annual leave policy (casual, earned, sick leave quantum)
-  - Notice period for resignation or termination
-  - Non-compete / non-solicitation (if applicable)
-  - Applicable laws: Indian Contract Act 1872, relevant state Shops Act`,
-
-  experience_letter: `Standard clauses to verify are present in an Indian experience/relieving letter:
-  - Full name, designation, and department
-  - Exact date of joining and last working day
-  - Statement that the employee is relieved from duties
-  - Character and conduct statement (e.g. "We found him/her to be diligent and sincere")
-  - Statement that all dues are cleared / No Dues Certificate mention
-  - Wish for future endeavors
-  - Authorized signatory name and designation
-  - Company seal / stamp reference`,
-
   nda: `Standard clauses to verify are present in an Indian Non-Disclosure Agreement:
   - Definition of "Confidential Information" (broad and specific)
   - Exclusions from confidential information (publicly known, independently developed, etc.)
@@ -127,16 +96,6 @@ const DOCUMENT_TYPE_CLAUSES: Record<string, string> = {
   - Remedies clause: injunctive relief in addition to damages
   - Governing law: Laws of India; jurisdiction of company's city High Court
   - Signatures of both parties with date`,
-
-  salary_slip: `Standard components to verify are present in an Indian salary slip:
-  - Employee details: Name, ID, Designation, Department, PAN, Bank Account
-  - Pay period: Month and Year
-  - Earnings breakdown: Basic Salary, HRA, Special Allowance, Other Allowances
-  - Deductions breakdown: PF (12% of Basic), ESI (if applicable), TDS, Professional Tax
-  - Gross Earnings, Total Deductions, and Net Pay (in figures and words)
-  - Days worked / LOP (Loss of Pay) days
-  - PF Account Number (UAN) and ESI Number if applicable
-  - Authorized signatory statement: "This is a computer-generated document"`,
 }
 
 /**
