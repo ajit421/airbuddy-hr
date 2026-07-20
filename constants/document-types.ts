@@ -9,13 +9,9 @@ import type { EmployeeStatus } from '@/types/employee'
  * Human-readable display labels for each document type.
  */
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  nda:                 'NDA Agreement',
-  internship_letter:   'Internship Letter',
-  salary_slip:         'Salary Slip',
-  experience_letter:   'Experience Letter',
-  appointment_letter:  'Appointment Letter',
-  offer_letter:        'Employment Offer Letter',
-  certificate:         'Certificate',
+  nda:          'NDA Agreement',
+  offer_letter: 'Employment Offer Letter',
+  certificate:  'Certificate',
 }
 
 /**
@@ -23,21 +19,14 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
  * Used to filter templates in the document generation wizard (Step 1).
  *
  * Rules:
- *   - nda               → full-time, contract, intern
- *   - internship_letter → intern only
- *   - salary_slip       → full-time, contract
- *   - experience_letter → resigned, terminated (post-employment)
- *   - appointment_letter → full-time
- *   - certificate       → intern, full-time, contract
+ *   - nda         → full-time, contract, intern
+ *   - offer_letter → full-time, contract
+ *   - certificate  → intern, full-time, contract
  */
 export const APPLICABLE_STATUS_MAP: Record<DocumentType, EmployeeStatus[]> = {
-  nda:                 ['full-time', 'contract', 'intern'],
-  internship_letter:   ['intern'],
-  salary_slip:         ['full-time', 'contract'],
-  experience_letter:   ['resigned', 'terminated', 'full-time', 'contract'],
-  appointment_letter:  ['full-time'],
-  offer_letter:        ['full-time', 'contract'],
-  certificate:         ['intern'],
+  nda:          ['full-time', 'contract', 'intern'],
+  offer_letter: ['full-time', 'contract'],
+  certificate:  ['intern'],
 }
 
 /**

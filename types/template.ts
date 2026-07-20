@@ -5,10 +5,6 @@ import type { EmployeeStatus } from './employee'
 
 export type DocumentType =
   | 'nda'
-  | 'internship_letter'
-  | 'salary_slip'
-  | 'experience_letter'
-  | 'appointment_letter'
   | 'offer_letter'
   | 'certificate'
 
